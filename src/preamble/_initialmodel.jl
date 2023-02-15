@@ -12,7 +12,7 @@ if _modelname isa Gaussian
     )
     # Model
     copula = ModelWrapper(
-        copulanames, deepcopy(_copula), (; rotation = _archimedeanrotation)
+        copulanames, deepcopy(_copula), (; reflection = _archimedeanreflection)
     )
 
 elseif _modelname isa TCop
@@ -28,7 +28,7 @@ elseif _modelname isa TCop
     )
     # Model
     copula = ModelWrapper(
-        copulanames, deepcopy(_copula), (; rotation = _archimedeanrotation)
+        copulanames, deepcopy(_copula), (; reflection = _archimedeanreflection)
     )
 
 elseif _modelname isa Clayton
@@ -41,7 +41,7 @@ elseif _modelname isa Clayton
     )
     # Model
     copula = ModelWrapper(
-        copulanames, deepcopy(_copula), (; rotation = _archimedeanrotation)
+        copulanames, deepcopy(_copula), (; reflection = _archimedeanreflection)
     )
 
 elseif _modelname isa Frank
@@ -54,7 +54,7 @@ elseif _modelname isa Frank
     )
     # Model
     copula = ModelWrapper(
-        copulanames, deepcopy(_copula), (; rotation = _archimedeanrotation)
+        copulanames, deepcopy(_copula), (; reflection = _archimedeanreflection)
     )
 
 elseif _modelname isa Gumbel
@@ -67,9 +67,8 @@ elseif _modelname isa Gumbel
     )
     # Model
     copula = ModelWrapper(
-        copulanames, deepcopy(_copula), (; rotation = _archimedeanrotation)
+        copulanames, deepcopy(_copula), (; reflection = _archimedeanreflection)
     )
-
 elseif _modelname isa Joe
     #Joe Copula Names
     copulanames = Joe()
@@ -80,8 +79,9 @@ elseif _modelname isa Joe
     )
     # Model
     copula = ModelWrapper(
-        copulanames, deepcopy(_copula), (; rotation = _archimedeanrotation)
+        copulanames, deepcopy(_copula), (; reflection = _archimedeanreflection)
     )
+else
     println("Copula name not defined")
 end
 
@@ -106,5 +106,5 @@ param_stochvol = (;
     δ = Param(Fixed(), 1.0/252.0, ), #1.0/252.0
 )
 model = ModelWrapper(StochasticVolatilityCopula(), param_stochvol,
-    (; copulanames = copulanames, subcopulas = subcopulas, rotation = _archimedeanrotation, marginals = _marginals)
+    (; copulanames = copulanames, subcopulas = subcopulas, reflection = _archimedeanreflection, marginals = _marginals)
 )

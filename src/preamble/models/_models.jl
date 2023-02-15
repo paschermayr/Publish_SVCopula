@@ -11,12 +11,12 @@ struct StochasticVolatilityCopula <: AbstractCopulas end
 abstract type AbstractMarginals <: ModelName end
 
 ################################################################################
-#Assign individual copula rotation
-abstract type ArchimedeanRotation end
-struct Rotation0 <: ArchimedeanRotation end
-struct Rotation90 <: ArchimedeanRotation end
-struct Rotation180 <: ArchimedeanRotation end
-struct Rotation270 <: ArchimedeanRotation end
+#Assign individual copula Reflection
+abstract type ArchimedeanReflection end
+struct Reflection0 <: ArchimedeanReflection end
+struct Reflection90 <: ArchimedeanReflection end
+struct Reflection180 <: ArchimedeanReflection end
+struct Reflection270 <: ArchimedeanReflection end
 
 ################################################################################
 # Add utility functions

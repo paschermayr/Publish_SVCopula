@@ -28,9 +28,9 @@ include(string("models/_models.jl"))
 
 ################################################################################
 # Settings for MCMC/SMC run
-_modelname = Clayton() #Gaussian() #TCop() #Clayton() #Frank() #Joe() #Gumbel()
+_modelname = Joe() #Gaussian() #TCop() #Clayton() #Frank() #Joe() #Gumbel()
+_archimedeanreflection = Reflection90()
 _marginals = (Distributions.Normal(), Distributions.Normal())
-_archimedeanrotation = Rotation90()
-_realdata = false
+_realdata = true
 #!NOTE - T Marginals with custom pullback for Reversediff makes using Cached ReverseDiff INCORRECT! Need to use untaped ReverseDiff if ReverseMode is used
 adbackend = :ForwardDiff #:ForwardDiff #:ReverseDiffUntaped

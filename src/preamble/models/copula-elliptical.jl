@@ -5,7 +5,7 @@ struct Gaussian <: Elliptical end
 param_GaussianCopula = (;
     ρ = Param(truncated(Normal(0.0, 10^5), -1.0, 1.0), _rho, )
 )
-gaussiancopula = ModelWrapper(Gaussian(), param_GaussianCopula, (; rotation = nothing))
+gaussiancopula = ModelWrapper(Gaussian(), param_GaussianCopula, (; reflection = nothing))
 length(param_GaussianCopula)
 =#
 function toCopula(copula::Gaussian, θ)
@@ -89,7 +89,7 @@ param_TCopula = (;
     #!NOTE: Fix df to be either 1 (Cauchy) or 2 or 4 so can use Cauchy or explicit formula for quantile computation
     df = Param(Fixed(), 2)
 )
-tcopula = ModelWrapper(TCop(), param_TCopula, (; rotation = nothing))
+tcopula = ModelWrapper(TCop(), param_TCopula, (; reflection = nothing))
 length(param_TCopula)
 =#
 function toCopula(copula::TCop, θ)
@@ -121,12 +121,15 @@ function get_copuladiagnostics(copula::TCop, θ::NamedTuple, dataᵤ::Matrix{F})
     )
 end
 
-function cumℓlikelihood(id::E, rotation, θ::NamedTuple, data) where {E<:Elliptical}
+function cumℓlikelihood(id::E, reflection, θ::NamedTuple, data) where {E<:Elliptical}
     ll = 0.0
     for dat in eachcol(data)
         ll += ℓlikelihood(id, θ, dat)
     end
     return ll
+end
+function _cumℓlikelihood(id::E, reflection, θ::NamedTuple, data) where {E<:Elliptical}
+    cumℓlikelihood(id, reflection, θ, data)
 end
 
 ################################################################################
@@ -136,7 +139,7 @@ function ModelWrappers.simulate(_rng::Random.AbstractRNG, model::ModelWrapper{<:
     U =  rand(_rng, copula, Nsamples)
     return U
 end
-function ModelWrappers.simulate(_rng::Random.AbstractRNG, id::E, rotation, val::NamedTuple, Nsamples = 1000) where {E<:Elliptical}
+function ModelWrappers.simulate(_rng::Random.AbstractRNG, id::E, reflection, val::NamedTuple, Nsamples = 1000) where {E<:Elliptical}
     copula = toCopula(id, val)
     U =  rand(_rng, copula, Nsamples)
     return U
@@ -147,7 +150,7 @@ function (objective::Objective{<:ModelWrapper{E}})(θ::NamedTuple) where {E<:Ell
 ## Prior
     lp = log_prior(tagged.info.transform.constraint, ModelWrappers.subset(θ, tagged.parameter) )
 ##Likelihood
-    ll = cumℓlikelihood(objective.model.id, objective.model.arg.rotation, θ, data)
+    ll = cumℓlikelihood(objective.model.id, objective.model.arg.reflection, θ, data)
     return ll + lp
 end
 function ModelWrappers.predict(_rng::Random.AbstractRNG, objective::Objective{<:ModelWrapper{M}}) where {M<:Elliptical}
@@ -158,7 +161,7 @@ end
 
 ################################################################################
 # Get Plots for it
-function plotContour(model::ModelWrapper{<:Elliptical}, dataᵤ::D, copulaname = model.id;
+function plotContour(model::ModelWrapper{<:Elliptical}, dataᵤ::D, copulaname = typeof(model.id);
     #!NOTE: assumes that model is already fitted with posterior mean
     #!NOTE: assumes data is from uniform domain
     marginal = Distributions.Normal(0.0, 1.0),
@@ -198,7 +201,7 @@ function plotContour(model::ModelWrapper{<:Elliptical}, dataᵤ::D, copulaname =
     #obs = reduce(hcat, quantile.(marginal, dataᵤ))
     obs = reduce(hcat, quantile.(marginal, [dat for dat in eachcol(dataᵤ)]))
     plot!(view(obs, 1, :), view(obs, 2, :),
-        label = typeof(copulaname),
+        label = copulaname,
         seriestype=:scatter, color="black", markersize=1.5
     )
     #Plot Copula density and data

@@ -5,7 +5,7 @@ struct Clayton <: Archimedean end
 param_ClaytonCopula = (;
     α = Param(truncated(Normal(0.1, 10^5), 0.0, 100.0), _alpha, )
 )
-claytoncopula = ModelWrapper(Clayton(), param_ClaytonCopula, (;rotation = _archimedeanrotation))
+claytoncopula = ModelWrapper(Clayton(), param_ClaytonCopula, (;reflection = _archimedeanreflection))
 length(param_ClaytonCopula)
 =#
 function toCopula(copula::Clayton, θ)
@@ -48,7 +48,7 @@ struct Frank <: Archimedean end
 param_FrankCopula = (;
     α = Param(truncated(Normal(0.1, 10^5), 0.0, 30.0), _alpha, )
 )
-frankcopula = ModelWrapper(Frank(), param_FrankCopula, (;rotation = _archimedeanrotation))
+frankcopula = ModelWrapper(Frank(), param_FrankCopula, (;reflection = _archimedeanreflection))
 length(param_FrankCopula)
 =#
 function toCopula(copula::Frank, θ)
@@ -88,7 +88,7 @@ struct Gumbel <: Archimedean end
 param_GumbelCopula = (;
     α = Param(truncated(Normal(2.0, 10^5), 1.0, 100.0), _alpha, )
 )
-gumbelcopula = ModelWrapper(Gumbel(), param_GumbelCopula, (;rotation = _archimedeanrotation))
+gumbelcopula = ModelWrapper(Gumbel(), param_GumbelCopula, (;reflection = _archimedeanreflection))
 length(param_GumbelCopula)
 =#
 function toCopula(copula::Gumbel, θ)
@@ -125,7 +125,7 @@ struct Joe <: Archimedean end
 param_JoeCopula = (;
     α = Param(truncated(Normal(2.0, 10^5), 1.0, 100.0), _alpha, )
 )
-joecopula = ModelWrapper(Joe(), param_JoeCopula, (;rotation = _archimedeanrotation))
+joecopula = ModelWrapper(Joe(), param_JoeCopula, (;reflection = _archimedeanreflection))
 length(param_JoeCopula)
 =#
 function toCopula(copula::Joe, θ)
@@ -159,13 +159,25 @@ function get_copuladiagnostics(copula::Joe, θ::NamedTuple, dataᵤ::Matrix{F}) 
 end
 
 ################################################################################
-function cumℓlikelihood(id::A, rotation::R, θ::NamedTuple, data) where {A<:Archimedean, R<:ArchimedeanRotation}
+function cumℓlikelihood(id::A, reflection::R, θ::NamedTuple, data) where {A<:Archimedean, R<:ArchimedeanReflection}
 ## If required, unrotate copula to original angle
-    U_rotated = unrotatecopula(rotation, data)
+    U_rotated = unrotatecopula(reflection, data)
 ## Compute ll
     ll = 0.0
     for dat in eachcol(U_rotated)
         ll += ℓlikelihood(id, θ, dat)
+    end
+    return ll
+end
+#!NOTE: not used in inference process
+function _cumℓlikelihood(id::A, reflection::R, θ::NamedTuple, data) where {A<:Archimedean, R<:ArchimedeanReflection}
+## If required, unrotate copula to original angle
+    U_rotated = unrotatecopula(reflection, data)
+## Compute ll
+    ll = 0.0
+    for dat in eachcol(U_rotated)
+        _val = ℓlikelihood(id, θ, dat)
+        ll += isfinite(_val) ? _val : 0.0
     end
     return ll
 end
@@ -174,13 +186,13 @@ end
 function ModelWrappers.simulate(_rng::Random.AbstractRNG, model::ModelWrapper{<:Archimedean}, Nsamples = 1000)
     copula = toCopula(model.id, model.val)
     U =  rand(_rng, copula, Nsamples)
-    U_rotated = rotatecopula(model.arg.rotation, U)
+    U_rotated = rotatecopula(model.arg.reflection, U)
     return U_rotated
 end
-function ModelWrappers.simulate(_rng::Random.AbstractRNG, id::E, rotation::R, val::NamedTuple, Nsamples = 1000) where {E<:Archimedean, R<:ArchimedeanRotation}
+function ModelWrappers.simulate(_rng::Random.AbstractRNG, id::E, reflection::R, val::NamedTuple, Nsamples = 1000) where {E<:Archimedean, R<:ArchimedeanReflection}
     copula = toCopula(id, val)
     U =  rand(_rng, copula, Nsamples)
-    U_rotated = rotatecopula(rotation, U)
+    U_rotated = rotatecopula(reflection, U)
     return U_rotated
 end
 
@@ -189,20 +201,20 @@ function (objective::Objective{<:ModelWrapper{A}})(θ::NamedTuple) where {A<:Arc
 ## Prior
     lp = log_prior(tagged.info.transform.constraint, ModelWrappers.subset(θ, tagged.parameter) )
 ## likelihood
-    ll = cumℓlikelihood(objective.model.id, objective.model.arg.rotation, θ, data)
+    ll = cumℓlikelihood(objective.model.id, objective.model.arg.reflection, θ, data)
     return ll + lp
 end
 
 function ModelWrappers.predict(_rng::Random.AbstractRNG, objective::Objective{<:ModelWrapper{M}}) where {M<:Archimedean}
     #Sample the error terms (in uniform dimension) given the Copula parameter
-    #!NOTE: This includes rotation already
+    #!NOTE: This includes reflection already
     U_rotated = ModelWrappers.simulate(_rng, objective.model, 1)
     return U_rotated
 end
 
 ################################################################################
 # Get Plots for it
-function plotContour(model::ModelWrapper{<:Archimedean}, dataᵤ::D, copulaname = model.id;
+function plotContour(model::ModelWrapper{<:Archimedean}, dataᵤ::D, copulaname = typeof(model.id);
     #!NOTE: assumes that model is already fitted with posterior mean
     #!NOTE: assumes data is from uniform domain
     marginal = Distributions.Normal(0.0, 1.0),
@@ -227,7 +239,7 @@ function plotContour(model::ModelWrapper{<:Archimedean}, dataᵤ::D, copulaname 
         for cols in eachindex(vx)
             u_vec[1] = ux[rows]
             u_vec[2] = vx[cols]
-            u_vec = rotatecopula(model.arg.rotation, u_vec)
+            u_vec = rotatecopula(model.arg.reflection, u_vec)
             ll_contour[rows, cols] = exp( ℓdu[rows] + ℓdv[cols] + ℓlikelihood(model.id, model.val, u_vec) ) # logpdf(copula, u_vec) ) #ℓlikelihood(model.id, u_vec, model.val.α) ) #du[rows] * dv[cols] * exp( ℓlikelihood(model.id, u_vec, model.val.α) )#0.03733348434990828
         end
     end
@@ -241,9 +253,9 @@ function plotContour(model::ModelWrapper{<:Archimedean}, dataᵤ::D, copulaname 
     )
     # Add sample data on the real line
     obs = reduce(hcat, quantile.(marginal, [dat for dat in eachcol(dataᵤ)]))
-#    obs = reduce(hcat, quantile.(marginal, [rotatecopula(model.arg.rotation, dat) for dat in eachcol(dataᵤ)]))
+#    obs = reduce(hcat, quantile.(marginal, [rotatecopula(model.arg.reflection, dat) for dat in eachcol(dataᵤ)]))
     plot!(view(obs, 1, :), view(obs, 2, :),
-        label = typeof(copulaname),
+        label = copulaname,
         seriestype=:scatter,
         #legend=false,
         color="black", markersize=1.5

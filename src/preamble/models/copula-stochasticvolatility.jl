@@ -22,7 +22,7 @@ param_stochvol = (;
     δ = Param(Fixed(), 1.0/252.0, ),
 )
 stochvolcopula = ModelWrapper(StochasticVolatilityCopula(), param_stochvol,
-    (; copulanames = TCop(), subcopulas = TCop(), rotation = _archimedeanrotation, marginals = _marginals)
+    (; copulanames = TCop(), subcopulas = TCop(), reflection = _archimedeanreflection, marginals = _marginals)
 )
 =#
 
@@ -32,9 +32,9 @@ function ModelWrappers.simulate(_rng::Random.AbstractRNG, model::ModelWrapper{<:
     # First sample from Copula
     @unpack marginals = model.arg
     if model.arg.copulanames isa FactorCopula
-        latent, dataᵤ = simulate(_rng, model.arg.copulanames, model.arg.rotation, model.val.copula, model.arg.subcopulas, Nsamples)
+        latent, dataᵤ = simulate(_rng, model.arg.copulanames, model.arg.reflection, model.val.copula, model.arg.subcopulas, Nsamples)
     else
-        dataᵤ = simulate(_rng, model.arg.copulanames, model.arg.rotation, model.val.copula, Nsamples)
+        dataᵤ = simulate(_rng, model.arg.copulanames, model.arg.reflection, model.val.copula, Nsamples)
     end
     #data is in uniform space - transform to real space with custom marginals.
     #!NOTE: Treat data[1,:] as ϵ and data[2,:] as ξ
@@ -99,7 +99,7 @@ function (objective::Objective{<:ModelWrapper{<:StochasticVolatilityCopula}})(θ
 ## Take cdf of error terms to go to uniform space
     errorsᵤ = to_errorsᵤ(marginals[1], marginals[2], errors)
 ## Compute likelihood of copula
-    ll = cumℓlikelihood(objective.model.arg.subcopulas, objective.model.arg.rotation, θ.copula, errorsᵤ)
+    ll = cumℓlikelihood(objective.model.arg.subcopulas, objective.model.arg.reflection, θ.copula, errorsᵤ)
     if (isnan(ll))
         return -Inf
     end
@@ -117,9 +117,9 @@ function ModelWrappers.predict(_rng::Random.AbstractRNG, objective::Objective{<:
     @unpack marginals = model.arg
     #Sample the error terms (in uniform dimension) given the Copula parameter
     if model.arg.copulanames isa FactorCopula
-        latent, dataᵤ = simulate(_rng, model.arg.copulanames, model.arg.rotation, model.val.copula, model.arg.subcopulas, 1)
+        latent, dataᵤ = simulate(_rng, model.arg.copulanames, model.arg.reflection, model.val.copula, model.arg.subcopulas, 1)
     else
-        dataᵤ = simulate(_rng, model.arg.copulanames, model.arg.rotation, model.val.copula, 1)
+        dataᵤ = simulate(_rng, model.arg.copulanames, model.arg.reflection, model.val.copula, 1)
     end
     #Transform to real dimension
     ϵ = quantile(marginals[1], dataᵤ[1])

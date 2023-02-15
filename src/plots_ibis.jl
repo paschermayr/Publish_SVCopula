@@ -1,71 +1,37 @@
 ################################################################################
+################################################################################
+################################################################################
+#Individual analysis
+
 import Pkg
 cd(@__DIR__)
 Pkg.activate(".")
 Pkg.status()
-include("src/_packages.jl");
-#=
+#If environment activated for first time, uncomment next line to install all libraries used in project
 #Pkg.instantiate()
-Pkg.status()
-import Pkg
-Pkg.update()
-Pkg.gc()
-Pkg.update()
-Pkg.resolve()
-Pkg.status()
-
-#Pkg.rm("Plots")
-#Pkg.add(Pkg.PackageSpec(;name="Plots", version="1.33.0"))
-#using Plots
-=#
+include("preamble/_packages.jl");
 
 ################################################################################
 # Set Preamble
-include("src/_preamble.jl");
+include("preamble/_preamble.jl");
+include("preamble/_initialmodel.jl");
 
-_modelname = TCop()
-_marginalname = nothing
-include("src/_models.jl");
 ################################################################################
-# Load model
-_subfolder ="/saved/real/" #-Cauchy #-Gaussian #-T_4
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Frank, Marginals-Tuple{Normal{Float64}, TDist{Float64}}, Rotation-Rotation90() - Trace.jld2"
-#=
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Frank, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Gaussian, Marginals-Normal{Float64} - Trace.jld2"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Gumbel, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Joe, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-TCop, Marginals-Normal{Float64} - Trace.jld2"
-=#
-#=
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-Cauchy{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Frank, Marginals-Cauchy{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Gaussian, Marginals-Cauchy{Float64} - Trace.jld2"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Gumbel, Marginals-Cauchy{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Joe, Marginals-Cauchy{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-TCop, Marginals-Cauchy{Float64} - Trace.jld2"
-=#
-#=
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-T4Distribution, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Frank, Marginals-Cauchy{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Gaussian, Marginals-T4Distribution - Trace.jld2"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Gumbel, Marginals-T4Distribution, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Joe, Marginals-T4Distribution, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-TCop, Marginals-T4Distribution - Trace.jld2"
-=#
+# Load saved model of choice
+_subfolder ="/saved/ibis/"
+_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2"
+
 f_model   =   jldopen(string(pwd(), _subfolder, _savedtrace))
-
-################################################################################
 trace_smcIBIS = read(f_model, "trace")
 model = read(f_model, "model")
 algorithm_smcIBIS = read(f_model, "algorithm")
 tagged = algorithm_smcIBIS.tune.tagged
-
 data = data_real
 
 ################################################################################
 #overwrite preamble for custom plots
+_modelname = model.arg.subcopulas
+_archimedeanreflection = model.arg.reflection
 
 _Nchains = collect( 1:length(trace_smcIBIS.val) )
 _Nalgorithms = [1]
@@ -78,13 +44,13 @@ _SVsetting = string(
     "StochasticVolatility Errors - Copula-", typeof(_modelname),
     ", Marginals-", typeof(_marginals),
     _modelname isa FactorCopula ? string(", SubCopulas-", typeof.(model.arg.subcopulas)) : "",
-    _modelname isa Archimedean ? string(", Rotation-", _archimedeanrotation) : "",
+    _modelname isa Archimedean ? string(", Reflection-", _archimedeanreflection) : "",
 )
 _Copsetting = string(
     "Copula - ", typeof(_modelname),
     ", Marginals-", typeof(_marginals),
     _modelname isa FactorCopula ? string(", SubCopulas-", typeof.(model.arg.subcopulas)) : "",
-    _modelname isa Archimedean ? string(", Rotation-", _archimedeanrotation) : "",
+    _modelname isa Archimedean ? string(", Reflection-", _archimedeanreflection) : "",
 )
 
 ################################################################################
@@ -97,7 +63,6 @@ transform_ibis = TraceTransform(
 # Basic Plots and output
 
 plotChain(trace_smcIBIS, tagged; burnin = 10)
-#Plots.savefig( string("IBIS - ", _SVsetting," - Chain.png") )
 Plots.savefig( string("Chp5_SMCTrace_WinningModel.pdf") )
 
 BaytesInference.plotDiagnostics(trace_smcIBIS.diagnostics, algorithm_smcIBIS)
@@ -121,14 +86,6 @@ plotContour(copula_contour, errorsᵤ; marginal = Cauchy())
 Plots.savefig( string("IBIS - ", _SVsetting," - Contour posterior parameter - Cauchy Marginals.png") )
 plotContour(copula_contour, errorsᵤ)
 Plots.savefig( string("IBIS - ", _SVsetting," - Contour posterior parameter - Gaussian Marginals.png") )
-plotContour(copula_contour, errorsᵤ; marginal = TDist(4))
-Plots.savefig( string("IBIS - ", _SVsetting," - Contour posterior parameter - T(df=4) Marginals.png") )
-
-
-p_1 = plotContour(copula_contour, errorsᵤ, 1)
-p_2 = plotContour(copula_contour, errorsᵤ, 2)
-plot(p_1, p_2, size=(1000,500))
-Plots.savefig( string("IBIS - ", _SVsetting," - Contour posterior parameter.png") )
 
 #Simulate data with posterior samples
 _Nsimulations = 5
@@ -188,11 +145,11 @@ plot_prediction = plot(;
 )
 
 plot!(dates_real[start_date:end], mean.(S_pred)[(start_date - smcstart + 1):end-1],
-    ylim = (6,10),
+    ylim = (8,9),
     label="Prediction", ylabel = "S = log(S&P500)", subplot=1, color="black"
 )
 plot!(dates_real[start_date:end], mean.(X_pred)[(start_date - smcstart + 1):end-1],
-    ylim = (-8, 0),
+    ylim = (-6, -1),
     label="Prediction", ylabel = "X = log((VIX/100)²)", subplot=2, color="black"
 )
 
@@ -217,65 +174,57 @@ plot!(dates_real[start_date:end], getindex.(data, 2)[start_date:end], label="Obs
 plot_prediction
 Plots.savefig( string("IBIS - ", _SVsetting," - IBIS prediction.png") )
 
-
-
 ################################################################################
 ################################################################################
 ################################################################################
 # Joint Analysis: Check cumulative log predictive likelihood
 
-
-################################################################################
 import Pkg
 cd(@__DIR__)
 Pkg.activate(".")
 Pkg.status()
-
-include("src/_packages.jl");
-include("src/_preamble.jl");
-
-_modelname = TCop() #Gaussian() #TCop() #Clayton() #Franck() #Joe() # Gumbel()
-_marginalname = nothing
-include("src/_models.jl");
-
-# Load model
-data = data_real
-_subfolder ="/saved/real/" #-Cauchy #-Gaussian #-T_4
+#If environment activated for first time, uncomment next line to install all libraries used in project
+#Pkg.instantiate()
+include("preamble/_packages.jl");
 
 ################################################################################
-# Load model
-data = data_real
-#= _savedtraces = [
-    "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Frank, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Gaussian, Marginals-Normal{Float64} - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Gumbel, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Joe, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-TCop, Marginals-Normal{Float64} - Trace.jld2"
- ]
-=#
-# #=
+# Set Preamble
+include("preamble/_preamble.jl");
+include("preamble/_initialmodel.jl");
+
+################################################################################
+# Load saved model of choice
+_subfolder ="/saved/ibis/"
+
 _savedtraces = [
-    "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, TDist{Float64}}, Rotation-Rotation90() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Frank, Marginals-Tuple{Normal{Float64}, TDist{Float64}}, Rotation-Rotation90() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Gaussian, Marginals-Tuple{Normal{Float64}, TDist{Float64}} - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Gumbel, Marginals-Tuple{Normal{Float64}, TDist{Float64}}, Rotation-Rotation90() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Joe, Marginals-Tuple{Normal{Float64}, TDist{Float64}}, Rotation-Rotation90() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-TCop, Marginals-Tuple{Normal{Float64}, TDist{Float64}} - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-Joe, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
 ]
-# =#
-#=
-_savedtraces = [
-    "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-T4Distribution, Rotation-Rotation90() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Frank, Marginals-T4Distribution, Rotation-Rotation90() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Gaussian, Marginals-T4Distribution - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Gumbel, Marginals-T4Distribution, Rotation-Rotation90() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Joe, Marginals-T4Distribution, Rotation-Rotation90() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-TCop, Marginals-T4Distribution - Trace.jld2"
-]
-=#
-_modelsnames = [Clayton(), Frank(), Gaussian(), Gumbel(), Joe(), TCop()]
-length(_modelsnames) == length(_savedtraces)
+
+################################################################################
+# Assign copulas and names based on _savedtrace
+_copulas = []
+_copulas_names = []
+
+for _modelname in _savedtraces
+    f_model   =   jldopen(string(pwd(), _subfolder, _modelname))
+    model = read(f_model, "model")
+
+    copula_temp = ModelWrapper(model.arg.subcopulas,
+            #!NOTE: just a buffer for posterior values
+            model.arg.subcopulas isa Archimedean ?
+                (; α = Param(truncated(Normal(1.0, 10^5), -100.0, 100.0), 4.0, )) :
+                (; ρ = Param(truncated(Normal(0.0, 10^5), -1.0, 1.0), -0.5, )),
+            (; reflection = model.arg.reflection)
+    )
+    copula_name_temp = model.arg.subcopulas isa Archimedean ? string(typeof(model.arg.subcopulas), " - ", typeof(model.arg.reflection)) : string(typeof(model.arg.subcopulas))
+    push!(_copulas_names, copula_name_temp)
+    push!(_copulas, copula_temp)
+end
+length(_copulas_names) == length(_copulas) == length(_savedtraces)
+
+################################################################################
 marginal_lik = []
 
 for (_counter, savedtrace) in enumerate(_savedtraces)
@@ -293,13 +242,11 @@ end
 plot_cumℓincrement(
     marginal_lik,
     dates_real[(end-length(marginal_lik[begin])+1):end],
-    string.(["Clayton", "Frank", "Gaussian", "Gumbel", "Joe", "T"]),
-#    string.(nameof.(typeof.(_modelsnames))),
+    String.(_copulas_names),
     2
 )
 ylabel!("Cumulative Log Predictive Likelihood", subplot=1)
 ylabel!("CLPBF of Frank Copula", subplot=2)
-#Plots.savefig( string("IBIS - Cumulative Log Bayes Factor.png") )
 Plots.savefig( string("Chp5_SMC_ModelComparison.pdf") )
 
 ################################################################################
@@ -346,10 +293,8 @@ end
 plot_clpbf(
     marginal_lik,
     dates_real[(end-length(marginal_lik[begin])+1):end],
-    string.(["Clayton", "Frank", "Gaussian", "Gumbel", "Joe", "T"]),
-#    string.(nameof.(typeof.(_modelsnames))),
+    String.(_copulas_names),
     2
 )
 ylabel!("CLPBF of Frank Copula", subplot=1)
-#Plots.savefig( string("IBIS - Cumulative Log Bayes Factor.png") )
 Plots.savefig( string("Chp5_SVM_SMC_ModelComparison.pdf") )

@@ -3,6 +3,7 @@ import Pkg
 cd(@__DIR__)
 Pkg.activate(".")
 Pkg.status()
+
 #If environment activated for first time, uncomment next line to install all libraries used in project
 #Pkg.instantiate()
 include("preamble/_packages.jl");
@@ -20,13 +21,13 @@ _SVsetting = string(
     "StochasticVolatility Errors - Copula-", typeof(_modelname),
     ", Marginals-", typeof(_marginals),
     _modelname isa FactorCopula ? string(", SubCopulas-", typeof.(model.arg.subcopulas)) : "",
-    _modelname isa Archimedean ? string(", Rotation-", _archimedeanrotation) : "",
+    _modelname isa Archimedean ? string(", Reflection-", _archimedeanreflection) : "",
 )
 _Copsetting = string(
     "Copula - ", typeof(_modelname),
     ", Marginals-", typeof(_marginals),
     _modelname isa FactorCopula ? string(", SubCopulas-", typeof.(model.arg.subcopulas)) : "",
-    _modelname isa Archimedean ? string(", Rotation-", _archimedeanrotation) : "",
+    _modelname isa Archimedean ? string(", Reflection-", _archimedeanreflection) : "",
 )
 tagged = Tagged(model, (:μₛ, :μᵥ, :κ, :σ, :copula) )
 tagged_copula = Tagged(copula)
@@ -49,7 +50,7 @@ elseif !_realdata && !(_modelname isa FactorCopula)
 else
     println("Check settings for data and modelname.")
 end
-plot( getindex.(data, 1) )
+
 ################################################################################
 # Create initial model and sample from prior
 model_initial = deepcopy(model)
@@ -69,18 +70,18 @@ trace_mcmc, algorithm_mcmc = sample(_rng, model_initial, data, _mcmc;
         printoutput = true, safeoutput = false
     )
 )
-Baytes.savetrace(trace_mcmc, model, algorithm_mcmc, string("MCMC - ", _SVsetting," - Trace"))
+Baytes.savetrace(trace_mcmc, model, algorithm_mcmc, string("output/MCMC - ", _SVsetting," - Trace"))
 
 ####################################
 # Basic Plots and output
 plotChain(trace_mcmc, tagged; burnin = _burnin)
-Plots.savefig( string("MCMC - ", _SVsetting," - Chain.png") )
+Plots.savefig( string("output/MCMC - ", _SVsetting," - Chain.png") )
 
 transform_mcmc = Baytes.TraceTransform(trace_mcmc, model, tagged,
     TransformInfo(collect(1:trace_mcmc.summary.info.Nchains), [trace_mcmc.summary.info.Nalgorithms], (_burnin+1):1:trace_mcmc.summary.info.iterations)
 )
 summary(trace_mcmc, algorithm_mcmc, transform_mcmc, PrintDefault())
-BaytesInference.plotChains(trace_mcmc, transform_mcmc)
+#BaytesInference.plotChains(trace_mcmc, transform_mcmc)
 
 postmean_vec, postmean_tup = trace_to_posteriormean(trace_mcmc, transform_mcmc)
 model_new = deepcopy(model)
@@ -96,10 +97,10 @@ copula_contour.val
 errors = Data_to_Error(model_new.val, data)
 errorsᵤ = cdf.(Normal(), errors)
 scatter(errorsᵤ[1,:], errorsᵤ[2,:])
-plotContour(copula_contour, errorsᵤ; marginal = Cauchy())
-Plots.savefig( string("MCMC - ", _SVsetting," - Contour posterior parameter - Cauchy Marginals.png") )
-plotContour(copula_contour, errorsᵤ)
-Plots.savefig( string("MCMC - ", _SVsetting," - Contour posterior parameter - Normal Marginals.png") )
+plotContour(copula_contour, errorsᵤ, string(typeof(copula_contour.id), " - ", typeof(copula_contour.arg.reflection)) ; marginal = Cauchy())
+Plots.savefig( string("output/MCMC - ", _SVsetting," - Contour posterior parameter - Cauchy Marginals.png") )
+plotContour(copula_contour, errorsᵤ, string(typeof(copula_contour.id), " - ", typeof(copula_contour.arg.reflection)) ;)
+Plots.savefig( string("output/MCMC - ", _SVsetting," - Contour posterior parameter - Normal Marginals.png") )
 
 #Simulate data with posterior samples
 _Nsimulations = 5
@@ -123,12 +124,12 @@ end
 plot!(ylabel="Log(S&P500)", subplot=9)
 plot!(ylabel="X=log(V)", subplot=10)
 p
-Plots.savefig( string("MCMC - ", _SVsetting," - Simulated data.png") )
+Plots.savefig( string("output/MCMC - ", _SVsetting," - Simulated data.png") )
 
 #save data and model parameter use for simulated data
 using JLD2
 JLD2.jldsave(
-    join((_SVsetting, " - Simulated Data and Parameter.jld2"));
+    join(("output/", _SVsetting, " - Simulated Data and Parameter.jld2"));
     model=model,
     data=data
 )
@@ -144,13 +145,13 @@ trace_smcIBIS, algorithm_smcIBIS = sample(_rng, model_initial, data, _ibis;
         printoutput = false,
     )
 )
-Baytes.savetrace(trace_smcIBIS, model, algorithm_smcIBIS, string("IBIS - ", _SVsetting," - Trace"))
+Baytes.savetrace(trace_smcIBIS, model, algorithm_smcIBIS, string("output/IBIS - ", _SVsetting," - Trace"))
 
 plotChain(trace_smcIBIS, tagged; burnin = 10)
-Plots.savefig( string("IBIS - ", _SVsetting," - Chain.png") )
+Plots.savefig( string("output/IBIS - ", _SVsetting," - Chain.png") )
 
 BaytesInference.plotDiagnostics(trace_smcIBIS.diagnostics, algorithm_smcIBIS)
-Plots.savefig( string("IBIS - ", _SVsetting," - Diagnostics.png") )
+Plots.savefig( string("output/IBIS - ", _SVsetting," - Diagnostics.png") )
 
 transform_ibis = TraceTransform(
     trace_smcIBIS, model_initial, tagged,
@@ -176,10 +177,10 @@ copula_contour.val
 #Real data Get error terms based on posterior parameter of model
 errors = Data_to_Error(model_new.val, data)
 errorsᵤ = cdf.(Normal(), errors)
-plotContour(copula_contour, errorsᵤ; marginal = Cauchy())
-Plots.savefig( string("IBIS - ", _SVsetting," - Contour posterior parameter - Cauchy Marginals.png") )
-plotContour(copula_contour, errorsᵤ)
-Plots.savefig( string("IBIS - ", _SVsetting," - Contour posterior parameter - Gaussian Marginals.png") )
+plotContour(copula_contour, errorsᵤ, string(typeof(copula_contour.id), " - ", typeof(copula_contour.arg.reflection)); marginal = Cauchy())
+Plots.savefig( string("output/IBIS - ", _SVsetting," - Contour posterior parameter - Cauchy Marginals.png") )
+plotContour(copula_contour, errorsᵤ, string(typeof(copula_contour.id), " - ", typeof(copula_contour.arg.reflection)) ;)
+Plots.savefig( string("output/IBIS - ", _SVsetting," - Contour posterior parameter - Gaussian Marginals.png") )
 
 #Simulate data with posterior samples
 _Nsimulations = 5
@@ -203,7 +204,7 @@ end
 plot!(ylabel="Log(S&P500)", subplot=9)
 plot!(ylabel="Log(VIX)", subplot=10)
 p
-Plots.savefig( string("IBIS - ", _SVsetting," - Simulated Data.png") )
+Plots.savefig( string("output/IBIS - ", _SVsetting," - Simulated Data.png") )
 
 ################################################################################
 #Check predictions vs actual data
@@ -266,4 +267,4 @@ plot_prediction
 plot!(dates_real[start_date:end], getindex.(data, 1)[start_date:end], label="Observed Data", subplot=1, color="blue")
 plot!(dates_real[start_date:end], getindex.(data, 2)[start_date:end], label="Observed Data", subplot=2, color="blue")
 plot_prediction
-Plots.savefig( string("IBIS - ", _SVsetting," - IBIS prediction.png") )
+Plots.savefig( string("output/IBIS - ", _SVsetting," - IBIS prediction.png") )

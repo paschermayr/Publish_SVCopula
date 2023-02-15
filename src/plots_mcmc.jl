@@ -1,73 +1,37 @@
 ################################################################################
+################################################################################
+################################################################################
+#Individual analysis
+
 import Pkg
 cd(@__DIR__)
 Pkg.activate(".")
 Pkg.status()
-include("src/_packages.jl");
-
-#=
-Pkg.instantiate()
-Pkg.status()
-import Pkg
-Pkg.update()
-Pkg.gc()
-Pkg.update()
-Pkg.resolve()
-Pkg.status()
-
-Pkg.rm("Plots")
-Pkg.add(Pkg.PackageSpec(;name="Plots", version="1.33.0"))
-using Plots
-=#
+#If environment activated for first time, uncomment next line to install all libraries used in project
+#Pkg.instantiate()
+include("preamble/_packages.jl");
 
 ################################################################################
 # Set Preamble
-include("src/_preamble.jl");
+include("preamble/_preamble.jl");
+include("preamble/_initialmodel.jl");
 
-_modelname = Frank() #Gaussian() #TCop() #Clayton() #Frank() #Joe() # Gumbel()
-_marginalname = nothing
-include("src/_models.jl");
 ################################################################################
-# Load model
-_subfolder ="/saved/real/" #-Cauchy #-Gaussian #-T_4
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Frank, Marginals-Tuple{Normal{Float64}, TDist{Float64}}, Rotation-Rotation90() - Trace.jld2"
-
-#=
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Frank, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Gaussian, Marginals-Normal{Float64} - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Gumbel, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Joe, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-TCop, Marginals-Normal{Float64} - Trace.jld2"
-=#
-#=
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Cauchy{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Frank, Marginals-Cauchy{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Gaussian, Marginals-Cauchy{Float64} - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Gumbel, Marginals-Cauchy{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Joe, Marginals-Cauchy{Float64}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-TCop, Marginals-Cauchy{Float64} - Trace.jld2"
-=#
-#=
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-T4Distribution, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Frank, Marginals-T4Distribution, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Gaussian, Marginals-T4Distribution - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Gumbel, Marginals-T4Distribution, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Joe, Marginals-T4Distribution, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-TCop, Marginals-T4Distribution - Trace.jld2"
-=#
+# Load saved model of choice
+_subfolder ="/saved/mcmc/"
+_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2"
 f_model   =   jldopen(string(pwd(), _subfolder, _savedtrace))
 
-################################################################################
 trace_mcmc = read(f_model, "trace")
 model = read(f_model, "model")
 algorithm_mcmc = read(f_model, "algorithm")
 tagged = algorithm_mcmc[1][1].tune.tagged
-
 data = data_real
 
 ################################################################################
 #overwrite preamble for custom plots
+_modelname = model.arg.subcopulas
+_archimedeanreflection = model.arg.reflection
 
 _Nchains = collect( 1:length(trace_mcmc.val) )
 _Nalgorithms = [1]
@@ -80,13 +44,13 @@ _SVsetting = string(
     "StochasticVolatility Errors - Copula-", typeof(_modelname),
     ", Marginals-", typeof(_marginals),
     _modelname isa FactorCopula ? string(", SubCopulas-", typeof.(model.arg.subcopulas)) : "",
-    _modelname isa Archimedean ? string(", Rotation-", _archimedeanrotation) : "",
+    _modelname isa Archimedean ? string(", Reflection-", _archimedeanreflection) : "",
 )
 _Copsetting = string(
     "Copula - ", typeof(_modelname),
     ", Marginals-", typeof(_marginals),
     _modelname isa FactorCopula ? string(", SubCopulas-", typeof.(model.arg.subcopulas)) : "",
-    _modelname isa Archimedean ? string(", Rotation-", _archimedeanrotation) : "",
+    _modelname isa Archimedean ? string(", Reflection-", _archimedeanreflection) : "",
 )
 
 ################################################################################
@@ -105,11 +69,9 @@ printchainsummary(
     PrintDefault(;Ndigits=2);
 )
 
-
 BaytesInference.plotChains(trace_mcmc, transform_mcmc)
 BaytesInference.plotChains(trace_mcmc, transform_mcmc_all)
 Plots.savefig( string("Chp5_SVM_MCMC_Trace_WinningModel.pdf") )
-#Plots.savefig( string("MCMC - ", _SVsetting," - Chain.png") )
 
 ################################################################################
 #Plot data
@@ -146,7 +108,7 @@ Plots.savefig( string("Chp5_RealData.pdf") )
 
 ################################################################################
 # Basic Plots and output
-plotChain(trace_mcmc, tagged; burnin = 1000) #, chains=[1,3, 4])
+plotChain(trace_mcmc, tagged; burnin = 1000)
 Plots.savefig( string("MCMC - ", _SVsetting," - Chain.png") )
 
 plotDiagnostics([trace_mcmc.diagnostics[iter][1] for iter in eachindex(trace_mcmc.diagnostics)], algorithm_mcmc[1][1])
@@ -172,13 +134,6 @@ plotContour(copula_contour, errorsᵤ; marginal = Cauchy())
 Plots.savefig( string("MCMC - ", _SVsetting," - Contour posterior parameter - Cauchy Marginals.png") )
 plotContour(copula_contour, errorsᵤ)
 Plots.savefig( string("MCMC - ", _SVsetting," - Contour posterior parameter - Gaussian Marginals.png") )
-plotContour(copula_contour, errorsᵤ; marginal = TDist(4))
-Plots.savefig( string("MCMC - ", _SVsetting," - Contour posterior parameter - T(df=4) Marginals.png") )
-
-p_1 = plotContour(copula_contour, errorsᵤ, 1)
-p_2 = plotContour(copula_contour, errorsᵤ, 2)
-plot(p_1, p_2, size=(1000,500))
-Plots.savefig( string("MCMC - ", _SVsetting," - Contour posterior parameter.png") )
 
 #Simulate data with posterior samples
 _Nsimulations = 5
@@ -204,40 +159,65 @@ plot!(ylabel="Log(VIX)", subplot=10)
 p
 Plots.savefig( string("MCMC - ", _SVsetting," - Simulated data.png") )
 
-################################################################################
-################################################################################
-################################################################################
-
 
 ################################################################################
 ################################################################################
 ################################################################################
 #Joint analysis
 
-
-
-
-
 ################################################################################
+################################################################################
+################################################################################
+#Joint analysis
+
 import Pkg
 cd(@__DIR__)
 Pkg.activate(".")
 Pkg.status()
+#If environment activated for first time, uncomment next line to install all libraries used in project
+#Pkg.instantiate()
+include("preamble/_packages.jl");
 
-include("src/_packages.jl");
-include("src/_preamble.jl");
+################################################################################
+# Set Preamble
+include("preamble/_preamble.jl");
+include("preamble/_initialmodel.jl");
 
-_modelname = TCop() #Gaussian() #TCop() #Clayton() #Franck() #Joe() # Gumbel()
-_marginalname = nothing
-include("src/_models.jl");
+################################################################################
+# Load saved model of choice
+_subfolder ="/saved/mcmc/"
 
-# Load model
-data = data_real
-_subfolder ="/saved/real/" #-Cauchy #-Gaussian #-T_4
+_savedtraces = [
+    "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-Joe, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+]
 
+################################################################################
+# Assign copulas and names based on _savedtrace
+_copulas = []
+_copulas_names = []
 
+for _modelname in _savedtraces
+    f_model   =   jldopen(string(pwd(), _subfolder, _modelname))
+    model = read(f_model, "model")
+
+    copula_temp = ModelWrapper(model.arg.subcopulas,
+            #!NOTE: just a buffer for posterior values
+            model.arg.subcopulas isa Archimedean ?
+                (; α = Param(truncated(Normal(1.0, 10^5), -100.0, 100.0), 4.0, )) :
+                (; ρ = Param(truncated(Normal(0.0, 10^5), -1.0, 1.0), -0.5, )),
+            (; reflection = model.arg.reflection)
+    )
+
+    push!(_copulas_names, string(typeof(model.arg.subcopulas), " - ", typeof(model.arg.reflection)))
+    push!(_copulas, copula_temp)
+
+end
+length(_copulas_names) == length(_copulas) == length(_savedtraces)
+
+################################################################################
 #WAIC and DIC computations
-
 # function to go from real data to uniform errors errorsᵤ
 function data_to_errorᵤ(marginals, θ, data)
     ## Obtain ϵ and ξ from S and X
@@ -253,39 +233,8 @@ function data_to_errors(marginals, θ, data)
     errorsᵤ = cdf.(marginals, errors)
     return errors, errorsᵤ
 end
-#=
-_savedtraces = [
-    "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Frank, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Gaussian, Marginals-Normal{Float64} - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Gumbel, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Joe, Marginals-Normal{Float64}, Rotation-Rotation90() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-TCop, Marginals-Normal{Float64} - Trace.jld2"
-]
-=#
-#=
-_savedtraces = [
-    "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Cauchy{Float64}, Rotation-Rotation90() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Frank, Marginals-Cauchy{Float64}, Rotation-Rotation90() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Gaussian, Marginals-Cauchy{Float64} - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Gumbel, Marginals-Cauchy{Float64}, Rotation-Rotation90() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Joe, Marginals-Cauchy{Float64}, Rotation-Rotation90() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-TCop, Marginals-Cauchy{Float64} - Trace.jld2"
-]
-=#
-# #=
-_savedtraces = [
-    "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, TDist{Float64}}, Rotation-Rotation90() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Frank, Marginals-Tuple{Normal{Float64}, TDist{Float64}}, Rotation-Rotation90() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Gaussian, Marginals-Tuple{Normal{Float64}, TDist{Float64}} - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Gumbel, Marginals-Tuple{Normal{Float64}, TDist{Float64}}, Rotation-Rotation90() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Joe, Marginals-Tuple{Normal{Float64}, TDist{Float64}}, Rotation-Rotation90() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-TCop, Marginals-Tuple{Normal{Float64}, TDist{Float64}} - Trace.jld2",
-]
-# =#
 
-
-f_modelbase   =   jldopen(string(pwd(), _subfolder, _savedtraces[begin]))
+f_modelbase = jldopen(string(pwd(), _subfolder, _savedtraces[begin]))
 trace_mcmcbase = read(f_modelbase, "trace")
 _Nchains = collect( 1:length(trace_mcmcbase.val) )
 _Nalgorithms = [1]
@@ -293,28 +242,27 @@ _burnin = 1000
 _maxiter = trace_mcmcbase.summary.info.iterations
 _effective_iter = (_burnin+1):1:_maxiter
 _fonttemp = 16
+data = data_real
 
 _SVsetting = string(
     "StochasticVolatility Errors - Copula-", typeof(_modelname),
     ", Marginals-", typeof(_marginals),
     _modelname isa FactorCopula ? string(", SubCopulas-", typeof.(model.arg.subcopulas)) : "",
-    _modelname isa Archimedean ? string(", Rotation-", _archimedeanrotation) : "",
+    _modelname isa Archimedean ? string(", Reflection-", _archimedeanreflection) : "",
 )
 _Copsetting = string(
     "Copula - ", typeof(_modelname),
     ", Marginals-", typeof(_marginals),
     _modelname isa FactorCopula ? string(", SubCopulas-", typeof.(model.arg.subcopulas)) : "",
-    _modelname isa Archimedean ? string(", Rotation-", _archimedeanrotation) : "",
+    _modelname isa Archimedean ? string(", Reflection-", _archimedeanreflection) : "",
 )
 
 transform_mcmc = Baytes.TraceTransform(trace_mcmcbase, model, Tagged(model, trace_mcmcbase.summary.info.printedparam.tagged),
     TransformInfo(_Nchains, _Nalgorithms, _effective_iter)
 )
 
-
-_modelsnames = [Clayton(), Frank(), Gaussian(), Gumbel(), Joe(), TCop()]
-length(_modelsnames) == length(_savedtraces)
-
+################################################################################
+# Preallocate results
 dic = []
 dic_alternative = []
 waic = []
@@ -323,44 +271,12 @@ dic_all = []
 dic_all_alternative = []
 waic_all = []
 
-
-################################################################################
-# Set initial copulas
-copula_clayton = ModelWrapper(Clayton(),
-        (; α = Param(_alpha, truncated(Normal(1.0, 10^5), 0.0, 50.0))),
-        (; rotation = _archimedeanrotation)
-)
-copula_frank = ModelWrapper(Frank(),
-        (; α = Param(_alpha, truncated(Normal(1.0, 10^5), 0.0, 30.0))),
-        (; rotation = _archimedeanrotation)
-)
-copula_gaussian = ModelWrapper(Gaussian(),
-        (; ρ = Param(_rho, truncated(Normal(0.0, 10^5), -1.0, 1.0))),
-        (; rotation = _archimedeanrotation)
-)
-copula_gumbel = ModelWrapper(Gumbel(),
-        (; α = Param(_alpha, truncated(Normal(1.0, 10^5), 1.0, 50.0))),
-        (; rotation = _archimedeanrotation)
-)
-copula_joe = ModelWrapper(Joe(),
-        (; α = Param(_alpha, truncated(Normal(1.0, 10^5), 1.0, 50.0))),
-        (; rotation = _archimedeanrotation)
-)
-copula_t = ModelWrapper(TCop(),
-    (; ρ = Param(_rho, truncated(Normal(0.0, 10^5), -1.0, 1.0)),
-    #!NOTE: set df = 2 so have formula for quantile, else need to change copula-elliptical.jl code
-    df = Param(2, Fixed())),
-        (; rotation = _archimedeanrotation)
-)
-_copulas = [copula_clayton, copula_frank, copula_gaussian, copula_gumbel, copula_joe, copula_t]
-_copulas_names = ["Clayton", "Frank", "Gaussian", "Gumbel", "Joe", "T"]
 cop_plots = []
 cop_statistics = []
 
 ################################################################################
-
-#savedtrace = _savedtraces[1]
-#_counter=1
+#_counter=2
+#savedtrace = _savedtraces[_counter]
 
 for (_counter, savedtrace) in enumerate(_savedtraces)
 #for savedtrace in _savedtraces
@@ -398,19 +314,17 @@ for (_counter, savedtrace) in enumerate(_savedtraces)
     # Compute likelihood from copula part
     incremental_ℓlikᵥ = map(iter ->
         map(dat ->
-            cumℓlikelihood(model.arg.subcopulas, model.arg.rotation, chain_posterior[iter].copula, dat),
+            cumℓlikelihood(model.arg.subcopulas, model.arg.reflection, chain_posterior[iter].copula, dat),
             eachcol(_errorsᵤ[iter])
         ), eachindex(chain_posterior)
     )
     # Compute Jacobian part
     incremental_ℓjac = map(iter ->
         map(dat ->
-    #        sum(logpdf(model.arg.marginals[1], dat[iter]) for iter in eachindex(dat) ) + -length(dat)*log(chain_posterior[iter].σ),
             logpdf(model.arg.marginals[1], dat[1]) + logpdf(model.arg.marginals[2], dat[2]) + -length(dat)*log(chain_posterior[iter].σ),
             eachcol(_errors[iter])
         ), eachindex(chain_posterior)
     )
-
     # Compute sum of it
     incremental_ℓpost = [ [incremental_ℓlikᵥ[iter][idx] + incremental_ℓjac[iter][idx] for idx in eachindex(incremental_ℓlikᵥ[iter])] for iter in eachindex(incremental_ℓlikᵥ)]
     #WAIC - copula part
@@ -422,17 +336,15 @@ for (_counter, savedtrace) in enumerate(_savedtraces)
 
 ## Compute DIC relevant statistics - Incremental likelihood for data_t for t=1:T for each posterior sample
     # Compute p(data | theta_posteriormean)
-    ℓlikθ = cumℓlikelihood(model.arg.subcopulas, model.arg.rotation, postmean_tup.copula, _errᵤ)
+    ℓlikθ = _cumℓlikelihood(model.arg.subcopulas, model.arg.reflection, postmean_tup.copula, _errᵤ)
     ℓlikᵥ = map( iter ->
-        cumℓlikelihood(model.arg.subcopulas, model.arg.rotation, chain_posterior[iter].copula,
+        _cumℓlikelihood(model.arg.subcopulas, model.arg.reflection, chain_posterior[iter].copula,
         _errorsᵤ[iter]
         ), eachindex(chain_posterior)
     )
     # Jacobian part
-#    ℓjacθ = sum(logpdf(model.arg.marginals, _err[iter]) for iter in eachindex(_err) ) + -N_errors*log(postmean_tup.σ)
     ℓjacθ = sum( logpdf(model.arg.marginals[1], _errₜ[1]) + logpdf(model.arg.marginals[2], _errₜ[2]) for _errₜ in eachcol(_err) ) + -N_errors*log(postmean_tup.σ)
     ℓjacᵥ = map( iter ->
-    #    sum(logpdf(model.arg.marginals, dat) for dat in _errors[iter]) + -N_errors*log(chain_posterior[iter].σ),
         sum( logpdf(model.arg.marginals[1], _errₜ[1]) + logpdf(model.arg.marginals[2], _errₜ[2]) for _errₜ in eachcol(_errors[iter]) ) + -N_errors*log(chain_posterior[iter].σ),
         eachindex(chain_posterior)
     )
@@ -474,16 +386,17 @@ end
 # Print contour plots
 
 allcopulaplots = [cop_plots[iter].plot for iter in eachindex(cop_plots)]
-
+#=
 allcopulaplots = []
 _copmarginal = Normal()
 for iter in eachindex(cop_plots)
     _p = plotContour(cop_plots[iter].copula, cop_plots[iter].dataᵤ, cop_plots[iter].name; marginal = _copmarginal)
     push!(allcopulaplots, _p)
 end
-
+=#
 _fonttemp2 = 10
 plot_cop = plot(
+#    allcopulaplots[1], allcopulaplots[2], allcopulaplots[3];
     allcopulaplots[1], allcopulaplots[2], allcopulaplots[3], allcopulaplots[4], allcopulaplots[5], allcopulaplots[6];
     #label = false, #_copulas_names,
     layout=(3, 2),
@@ -539,7 +452,6 @@ PrettyTables.pretty_table(
 
 ################################################################################
 #Return WAIC and DIC as table
-#NamedTuple{Tuple(Symbol.(_modelname))}(waic_allmodels)
 using PrettyTables
 
 dic
@@ -557,7 +469,6 @@ dic_all_alternative_names = collect(keys(dic_all_alternative[begin]))
 dic_all_alternative_table = reduce(hcat, [ getindex.(dic_all_alternative, iter) for iter in eachindex(dic_all_alternative_names)])
 dic_all_alternative_ranking = sortperm(dic_all_alternative_table[:,1])
 
-
 waic
 waic_names = collect(keys(waic[begin]))
 waic_table = reduce(hcat, [ getindex.(waic, iter) for iter in eachindex(waic_names)])
@@ -568,23 +479,24 @@ waic_all_names = collect(keys(waic_all[begin]))
 waic_all_table = reduce(hcat, [ getindex.(waic_all, iter) for iter in eachindex(waic_all_names)])
 waic_all_ranking = sortperm(waic_all_table[:,1])
 
-
-
 ################################################################################
+_prettytableoutput = :text
+noranking = collect(1:length(dic_ranking))
+dic_ranking = dic_all_ranking = waic_ranking = waic_all_ranking = noranking
+
 println("## DIC - Copula and Marginal Part: ")
 PrettyTables.pretty_table(
-    round.(dic_all_table; digits=2)[dic_all_ranking,:], backend = Val(:latex), row_labels = _modelsnames[dic_all_ranking], header = dic_all_names
+    round.(dic_all_table; digits=2)[dic_all_ranking,:], backend = Val(_prettytableoutput), row_labels = _copulas_names[dic_all_ranking], header = dic_all_names
 )
 println("## WAIC - Copula and Marginal Part: ")
 PrettyTables.pretty_table(
-    round.(waic_all_table; digits=2)[waic_all_ranking,:], backend = Val(:latex), row_labels = _modelsnames[waic_all_ranking], header = waic_all_names
+    round.(waic_all_table; digits=2)[waic_all_ranking,:], backend = Val(_prettytableoutput), row_labels = _copulas_names[waic_all_ranking], header = waic_all_names
 )
 
 println("## DIC (alternative)- Copula and Marginal Part: ")
 PrettyTables.pretty_table(
-    round.(dic_all_alternative_table; digits=2)[dic_all_alternative_ranking,:], backend = Val(:latex), row_labels = _modelsnames[dic_all_alternative_ranking], header = dic_all_alternative_names
+    round.(dic_all_alternative_table; digits=2)[dic_all_alternative_ranking,:], backend = Val(_prettytableoutput), row_labels = _copulas_names[dic_all_alternative_ranking], header = dic_all_alternative_names
 )
-
 
 ################################################################################
 _f_model   =   jldopen(string(pwd(), _subfolder, _savedtraces[begin]))
@@ -594,43 +506,21 @@ println("DIC and WAIC Diagnostics for marginals: ", typeof(_model.arg.marginals)
 println("#####################################################################")
 println("## DIC - Copula Part only: ")
 PrettyTables.pretty_table(
-#    dic_table, backend = Val(:text), row_labels = _modelsnames, header = dic_names
-    dic_table[dic_ranking,:], backend = Val(:text), row_labels = _modelsnames[dic_ranking], header = dic_names
+    dic_table[dic_ranking,:], backend = Val(_prettytableoutput), row_labels = _copulas_names[dic_ranking], header = dic_names
 )
+
 println("## DIC - Copula and Marginal Part: ")
 PrettyTables.pretty_table(
-#    dic_all_table, backend = Val(:text), row_labels = _modelsnames, header = dic_all_names
-    dic_all_table[dic_all_ranking,:], backend = Val(:text), row_labels = _modelsnames[dic_all_ranking], header = dic_all_names
+    dic_all_table[dic_all_ranking,:], backend = Val(_prettytableoutput), row_labels = _copulas_names[dic_all_ranking], header = dic_all_names
 )
 println("## WAIC - Copula Part only: ")
 PrettyTables.pretty_table(
-#    waic_table, backend = Val(:text), row_labels = _modelsnames, header = waic_names
-    waic_table[waic_ranking,:], backend = Val(:text), row_labels = _modelsnames[waic_ranking], header = waic_names
+    waic_table[waic_ranking,:], backend = Val(_prettytableoutput), row_labels = _copulas_names[waic_ranking], header = waic_names
 )
 println("## WAIC - Copula and Marginal Part: ")
 PrettyTables.pretty_table(
-#    waic_all_table, backend = Val(:text), row_labels = _modelsnames, header = waic_all_names
-    waic_all_table[waic_all_ranking,:], backend = Val(:text), row_labels = _modelsnames[waic_all_ranking], header = waic_all_names
+    waic_all_table[waic_all_ranking,:], backend = Val(_prettytableoutput), row_labels = _copulas_names[waic_all_ranking], header = waic_all_names
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ################################################################################
 ################################################################################
@@ -650,16 +540,8 @@ _marginalname = nothing
 include("src/_models.jl");
 
 _subfolder ="/saved/_simulated/" #-Cauchy #-Gaussian #-T_4
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Frank, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Rotation-Rotation90() - Trace.jld2"
-_saveddata = "StochasticVolatility Errors - Copula-Frank, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Rotation-Rotation90() - Simulated Data and Parameter.jld2"
-#=
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Frank, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Gaussian, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Gumbel, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Joe, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Rotation-Rotation90() - Trace.jld2"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-TCop, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2"
-=#
+_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Frank, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2"
+_saveddata = "StochasticVolatility Errors - Copula-Frank, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Simulated Data and Parameter.jld2"
 
 ################################################################################
 f_model  =   jldopen(string(pwd(), _subfolder, _savedtrace))
@@ -667,7 +549,6 @@ trace_mcmc = read(f_model, "trace")
 model = read(f_model, "model")
 algorithm_mcmc = read(f_model, "algorithm")
 tagged = algorithm_mcmc[1][1].tune.tagged
-
 
 ################################################################################
 #overwrite preamble for custom plots
@@ -683,13 +564,13 @@ _SVsetting = string(
     "StochasticVolatility Errors - Copula-", typeof(_modelname),
     ", Marginals-", typeof(_marginals),
     _modelname isa FactorCopula ? string(", SubCopulas-", typeof.(model.arg.subcopulas)) : "",
-    _modelname isa Archimedean ? string(", Rotation-", _archimedeanrotation) : "",
+    _modelname isa Archimedean ? string(", Reflection-", _archimedeanreflection) : "",
 )
 _Copsetting = string(
     "Copula - ", typeof(_modelname),
     ", Marginals-", typeof(_marginals),
     _modelname isa FactorCopula ? string(", SubCopulas-", typeof.(model.arg.subcopulas)) : "",
-    _modelname isa Archimedean ? string(", Rotation-", _archimedeanrotation) : "",
+    _modelname isa Archimedean ? string(", Reflection-", _archimedeanreflection) : "",
 )
 
 ################################################################################
@@ -714,20 +595,16 @@ BaytesInference.plotChains(trace_mcmc, transform_mcmc)
 BaytesInference.plotChains(trace_mcmc, transform_mcmc_all)
 Plots.savefig( string("Chp4_SVM_MCMC_Trace_SimulatedModel.pdf") )
 
-
 ################################################################################
 # Plot data
 f_data   =   jldopen(string(pwd(), _subfolder, _saveddata))
 data = read(f_data, "data")
-#model2 = read(f_data, "model")
 
 S = getindex.( data, 1)
 X = getindex.(data, 2)
-#V = getindex.(data_real, 3)
 p = plot(layout=(2,1), label=false)
 S_diff = [(S[iter] - S[iter-1])^2 for iter in 2:length(S)]
 plot!(S_diff, xlabel = string("Mean: ", mean(S_diff) ), ylabel="(Sₜ - Sₜ₋₁)²", label=false, subplot=1)
-#plot!(model.val.δ .* (V), xlabel = string("Mean: ", mean(model.val.δ .* (V.^2) ) ), ylabel="δ * V", label=false, subplot=2)
 plot!(model.val.δ .* (X.^2), xlabel = string("Mean: ", mean(model.val.δ .* (X.^2) ) ), ylabel="δ * X²", label=false, subplot=2)
 
 p = plot(layout=(1,1), label=false)
@@ -748,15 +625,8 @@ plot_latent = plot(;
     background_color_legend = nothing,
 )
 plot!(S, subplot=1, ylabel="S (Stock)", xlabel="time", label=false)
-#plot!(V, subplot=2, ylabel="V = (VIX/100)²", xlabel="time", label=false)
 plot!(X, subplot=2, ylabel="X (Volatility)", xlabel="time", label=false)
 Plots.savefig( string("Chp4_SimulatedData.pdf") )
-
-
-
-
-
-
 
 ################################################################################
 ################################################################################
@@ -778,7 +648,6 @@ model = model_marginal
 
 _marginaltype = "S"
 _subfolder = string("/saved/_marginals/Marginals-", _marginaltype, "/")
-#_savedtrace = "MCMC - StockMarginal() - Trace.jld2"
 _savedtrace = "MCMC - VolatilityMarginal() - Trace.jld2"
 
 f_model  =   jldopen(string(pwd(), _subfolder, _savedtrace))
