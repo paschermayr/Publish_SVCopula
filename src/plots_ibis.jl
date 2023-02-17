@@ -197,9 +197,16 @@ include("preamble/_initialmodel.jl");
 _subfolder ="/saved/ibis/"
 
 _savedtraces = [
+    "IBIS - StochasticVolatility Errors - Copula-BB1, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-BB1, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-BB7, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
     "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
     "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Joe, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-Frank, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-Gaussian, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-Gumbel, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-Gumbel, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-TCop, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2"
 ]
 
 ################################################################################
@@ -211,18 +218,15 @@ for _modelname in _savedtraces
     f_model   =   jldopen(string(pwd(), _subfolder, _modelname))
     model = read(f_model, "model")
 
-    copula_temp = ModelWrapper(model.arg.subcopulas,
-            #!NOTE: just a buffer for posterior values
-            model.arg.subcopulas isa Archimedean ?
-                (; α = Param(truncated(Normal(1.0, 10^5), -100.0, 100.0), 4.0, )) :
-                (; ρ = Param(truncated(Normal(0.0, 10^5), -1.0, 1.0), -0.5, )),
-            (; reflection = model.arg.reflection)
-    )
-    copula_name_temp = model.arg.subcopulas isa Archimedean ? string(typeof(model.arg.subcopulas), " - ", typeof(model.arg.reflection)) : string(typeof(model.arg.subcopulas))
-    push!(_copulas_names, copula_name_temp)
+    _tagged = Tagged(model, :copula)
+    copula_temp = ModelWrapper(model.val.copula, (; reflection = model.arg.reflection), _tagged.info, model.arg.subcopulas)
+    name_temp = get_copula_name(model.arg.subcopulas, model.arg.reflection)
+
+    push!(_copulas_names, name_temp)
     push!(_copulas, copula_temp)
 end
 length(_copulas_names) == length(_copulas) == length(_savedtraces)
+_copulas_names
 
 ################################################################################
 marginal_lik = []
@@ -243,11 +247,12 @@ plot_cumℓincrement(
     marginal_lik,
     dates_real[(end-length(marginal_lik[begin])+1):end],
     String.(_copulas_names),
-    2
+    6
 )
 ylabel!("Cumulative Log Predictive Likelihood", subplot=1)
-ylabel!("CLPBF of Frank Copula", subplot=2)
+ylabel!(string("CLPBF of ", _copulas_names[6]), subplot=2)
 Plots.savefig( string("Chp5_SMC_ModelComparison.pdf") )
+
 
 ################################################################################
 function plot_clpbf(

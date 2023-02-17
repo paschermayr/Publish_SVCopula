@@ -38,7 +38,6 @@ include("preamble/_algorithm.jl");
 
 ################################################################################
 # Set Data
-model.val
 if _realdata
     data = data_real
 elseif !_realdata && _modelname isa FactorCopula

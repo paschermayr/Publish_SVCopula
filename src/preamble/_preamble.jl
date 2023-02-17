@@ -28,7 +28,7 @@ include(string("models/_models.jl"))
 
 ################################################################################
 # Settings for MCMC/SMC run
-_modelname = Joe() #Gaussian() #TCop() #Clayton() #Frank() #Joe() #Gumbel()
+_modelname = BB7() #Gaussian() #TCop() #Clayton() #Frank() #Joe() #Gumbel()
 _archimedeanreflection = Reflection90()
 _marginals = (Distributions.Normal(), Distributions.Normal())
 _realdata = true

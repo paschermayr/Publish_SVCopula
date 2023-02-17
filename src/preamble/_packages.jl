@@ -1,6 +1,6 @@
 ################################################################################
 using Distributions, ForwardDiff, ReverseDiff
-import Distributions: cdf, logpdf, quantile, TDist
+import Distributions: cdf, logpdf, quantile, TDist, rand
 using ChainRulesCore
 import ChainRulesCore: rrule
 using StatsBase

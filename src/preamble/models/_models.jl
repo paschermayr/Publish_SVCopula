@@ -28,6 +28,7 @@ include(string("copula-", "elliptical", ".jl"))
 
 # Explicit Copulas - only Archimedean covered
 include(string("copula-", "archimedean", ".jl"))
+include(string("copula-", "bb", ".jl"))
 
 # Stochastic Volatility framework
 #!NOTE: Marginal associated to ϵ (_marginal1) and ξ (_marginal2)

@@ -155,3 +155,22 @@ u2_orig = unrotatecopula(Reflection270(), u2_rotated)
 sum( abs.(u1 .- u1_orig))
 sum( abs.(u2 .- u2_orig))
 =#
+
+################################################################################
+# Utility function to to name copulas
+function get_rotation_name(copula::AbstractCopulas, reflection)
+    return ""
+end
+function get_rotation_name(copula::Archimedean, reflection::Reflection90)
+    return "1-reflected "
+end
+function get_rotation_name(copula::Archimedean, reflection::Reflection180)
+    return "Survival "
+end
+function get_rotation_name(copula::Archimedean, reflection::Reflection270)
+    return "2-reflected "
+end
+
+function get_copula_name(copula::AbstractCopulas, reflection::ArchimedeanReflection)
+    return string(get_rotation_name(copula, reflection), typeof(copula))
+end

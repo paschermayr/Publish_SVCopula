@@ -188,9 +188,16 @@ include("preamble/_initialmodel.jl");
 _subfolder ="/saved/mcmc/"
 
 _savedtraces = [
+    "MCMC - StochasticVolatility Errors - Copula-BB1, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-BB1, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-BB7, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
     "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
     "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Joe, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-Frank, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-Gaussian, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-Gumbel, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-Gumbel, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-TCop, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2"
 ]
 
 ################################################################################
@@ -202,17 +209,12 @@ for _modelname in _savedtraces
     f_model   =   jldopen(string(pwd(), _subfolder, _modelname))
     model = read(f_model, "model")
 
-    copula_temp = ModelWrapper(model.arg.subcopulas,
-            #!NOTE: just a buffer for posterior values
-            model.arg.subcopulas isa Archimedean ?
-                (; α = Param(truncated(Normal(1.0, 10^5), -100.0, 100.0), 4.0, )) :
-                (; ρ = Param(truncated(Normal(0.0, 10^5), -1.0, 1.0), -0.5, )),
-            (; reflection = model.arg.reflection)
-    )
+    _tagged = Tagged(model, :copula)
+    copula_temp = ModelWrapper(model.val.copula, (; reflection = model.arg.reflection), _tagged.info, model.arg.subcopulas)
+    name_temp = get_copula_name(model.arg.subcopulas, model.arg.reflection)
 
-    push!(_copulas_names, string(typeof(model.arg.subcopulas), " - ", typeof(model.arg.reflection)))
+    push!(_copulas_names, name_temp)
     push!(_copulas, copula_temp)
-
 end
 length(_copulas_names) == length(_copulas) == length(_savedtraces)
 
@@ -397,9 +399,10 @@ end
 _fonttemp2 = 10
 plot_cop = plot(
 #    allcopulaplots[1], allcopulaplots[2], allcopulaplots[3];
-    allcopulaplots[1], allcopulaplots[2], allcopulaplots[3], allcopulaplots[4], allcopulaplots[5], allcopulaplots[6];
+    allcopulaplots...;
+#    allcopulaplots[1], allcopulaplots[2], allcopulaplots[3], allcopulaplots[4], allcopulaplots[5], allcopulaplots[6];
     #label = false, #_copulas_names,
-    layout=(3, 2),
+    layout=(5, 2),
     size=(1000,1000),
 #    legend=:topleft,
     xguidefontsize=_fonttemp2,
