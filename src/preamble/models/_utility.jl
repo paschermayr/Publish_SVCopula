@@ -154,6 +154,28 @@ u2_orig = unrotatecopula(Reflection270(), u2_rotated)
 
 sum( abs.(u1 .- u1_orig))
 sum( abs.(u2 .- u2_orig))
+
+
+################################################################################
+# Proof of work concept:
+
+#Current workflow
+data = rand(2, 10)
+reflection = Reflection90()
+copula = frankcopula
+
+u = rand(2)
+u_unrotated = unrotatecopula(Reflection90(), u)
+u_rotated = rotatecopula(Reflection90(), u)
+
+#1 Assume rotated data as input: Unrorate data, then evaluate:
+ℓur = ℓlikelihood(Frank(), (;α = 5.), u_unrotated)
+
+# Assume unrotated data as input: Rotate data, then evaluate
+ℓr = ℓlikelihood(Frank(), (;α = 5.), u_rotated)
+
+ℓur ≈ ℓr
+
 =#
 
 ################################################################################

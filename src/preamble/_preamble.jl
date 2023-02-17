@@ -28,8 +28,8 @@ include(string("models/_models.jl"))
 
 ################################################################################
 # Settings for MCMC/SMC run
-_modelname = BB7() #Gaussian() #TCop() #Clayton() #Frank() #Joe() #Gumbel()
-_archimedeanreflection = Reflection90()
+_modelname = Frank() #Gaussian() #TCop() #Clayton() #Frank() #Joe() #Gumbel()
+_archimedeanreflection = Reflection0()
 _marginals = (Distributions.Normal(), Distributions.Normal())
 _realdata = true
 #!NOTE - T Marginals with custom pullback for Reversediff makes using Cached ReverseDiff INCORRECT! Need to use untaped ReverseDiff if ReverseMode is used

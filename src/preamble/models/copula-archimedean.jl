@@ -46,7 +46,7 @@ end
 struct Frank <: Archimedean end
 #=
 param_FrankCopula = (;
-    α = Param(truncated(Normal(0.1, 10^5), 0.0, 30.0), _alpha, )
+    α = Param(truncated(Normal(0.1, 10^5), -30.0, 30.0), _alpha, )
 )
 frankcopula = ModelWrapper(Frank(), param_FrankCopula, (;reflection = _archimedeanreflection))
 length(param_FrankCopula)
@@ -54,11 +54,13 @@ length(param_FrankCopula)
 function toCopula(copula::Frank, θ)
     return FrankCopula(2, θ.α)
 end
+
 function ℓlikelihood(copula::C, θ::NamedTuple, u::AbstractVector) where {C<:Frank}
     @unpack α = θ
     return ( log(α) + (-α * (sum(u))) + log(1 - exp(-α)) ) -
     2*( log( (1 - exp(-α)) - prod( (1 - exp(-α * u[iter])) for iter in eachindex(u)) ) )
 end
+
 function rand_conditional(_rng::Random.AbstractRNG, copula::C, u1::T) where {C<:FrankCopula, T<:Real}
     t = rand(_rng)
     α = copula.θ

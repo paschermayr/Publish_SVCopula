@@ -18,8 +18,8 @@ include("preamble/_initialmodel.jl");
 
 ################################################################################
 # Load saved model of choice
-_subfolder ="/saved/mcmc/"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2"
+_subfolder ="/saved/real/mcmc/"
+_savedtrace = "MCMC - StochasticVolatility Errors - Copula-BB1, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2"
 f_model   =   jldopen(string(pwd(), _subfolder, _savedtrace))
 
 trace_mcmc = read(f_model, "trace")
@@ -185,7 +185,7 @@ include("preamble/_initialmodel.jl");
 
 ################################################################################
 # Load saved model of choice
-_subfolder ="/saved/mcmc/"
+_subfolder ="/saved/real/mcmc/"
 
 _savedtraces = [
     "MCMC - StochasticVolatility Errors - Copula-BB1, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
@@ -297,6 +297,8 @@ for (_counter, savedtrace) in enumerate(_savedtraces)
     transform_all = Baytes.TraceTransform(trace_mcmc, model, Tagged(model),
         TransformInfo(_Nchains, _Nalgorithms, _effective_iter)
     )
+    savechainsummary(trace_mcmc, transform_all, PrintDefault(;Ndigits=2), string("output/MCMC - ", _copulas_names[_counter]," - Chaindiagnostics"))
+
     chain_posterior = merge_chainvals(trace_mcmc, transform_all)
     #Then obtain posterior mean
     chain_posterior = merge_chainvals(trace_mcmc, transform_all)
@@ -533,18 +535,18 @@ import Pkg
 cd(@__DIR__)
 Pkg.activate(".")
 Pkg.status()
-include("src/_packages.jl");
-#######################################
+#If environment activated for first time, uncomment next line to install all libraries used in project
+#Pkg.instantiate()
+include("preamble/_packages.jl");
+
+################################################################################
 # Set Preamble
-include("src/_preamble.jl");
+include("preamble/_preamble.jl");
+include("preamble/_initialmodel.jl");
 
-_modelname = Frank() #Gaussian() #TCop() #Clayton() #Frank() #Joe() # Gumbel()
-_marginalname = nothing
-include("src/_models.jl");
-
-_subfolder ="/saved/_simulated/" #-Cauchy #-Gaussian #-T_4
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-Frank, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2"
-_saveddata = "StochasticVolatility Errors - Copula-Frank, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Simulated Data and Parameter.jld2"
+_subfolder ="/saved/simulated/mcmc/" #-Cauchy #-Gaussian #-T_4
+_savedtrace = "MCMC - StochasticVolatility Errors - Copula-BB7, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2"
+_saveddata = "StochasticVolatility Errors - Copula-BB7, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Simulated Data and Parameter.jld2"
 
 ################################################################################
 f_model  =   jldopen(string(pwd(), _subfolder, _savedtrace))
@@ -630,57 +632,3 @@ plot_latent = plot(;
 plot!(S, subplot=1, ylabel="S (Stock)", xlabel="time", label=false)
 plot!(X, subplot=2, ylabel="X (Volatility)", xlabel="time", label=false)
 Plots.savefig( string("Chp4_SimulatedData.pdf") )
-
-################################################################################
-################################################################################
-################################################################################
-# Marginals
-import Pkg
-cd(@__DIR__)
-Pkg.activate(".")
-Pkg.status()
-include("src/_packages.jl");
-#######################################
-# Set Preamble
-include("src/_preamble.jl");
-
-_modelname = Frank() #Gaussian() #TCop() #Clayton() #Frank() #Joe() # Gumbel()
-_marginalname = VolatilityMarginal()
-include("src/_models.jl");
-model = model_marginal
-
-_marginaltype = "S"
-_subfolder = string("/saved/_marginals/Marginals-", _marginaltype, "/")
-_savedtrace = "MCMC - VolatilityMarginal() - Trace.jld2"
-
-f_model  =   jldopen(string(pwd(), _subfolder, _savedtrace))
-trace_mcmc = read(f_model, "trace")
-model = read(f_model, "model")
-algorithm_mcmc = read(f_model, "algorithm")
-tagged = algorithm_mcmc[1][1].tune.tagged
-
-_Nchains = collect( 1:length(trace_mcmc.val) )
-_Nalgorithms = [1]
-_burnin = 1000
-_maxiter = trace_mcmc.summary.info.iterations
-_effective_iter = (_burnin+1):1:_maxiter
-_fonttemp = 16
-
-################################################################################
-transform_mcmc = Baytes.TraceTransform(trace_mcmc, model, tagged,
-    TransformInfo(_Nchains, _Nalgorithms, _effective_iter)
-)
-transform_mcmc_all = Baytes.TraceTransform(trace_mcmc, model, tagged,
-    TransformInfo(_Nchains, _Nalgorithms, 1:1:_effective_iter[end])#_effective_iter)
-)
-
-#Make summary
-printchainsummary(
-    trace_mcmc,
-    transform_mcmc,
-    Val(:latex), #or Val(:latex)
-    PrintDefault(;Ndigits=2);
-)
-
-BaytesInference.plotChains(trace_mcmc, transform_mcmc)
-Plots.savefig( string("Chp5_Marginals_MCMC_Trace_Data-", _marginaltype, ".pdf") )

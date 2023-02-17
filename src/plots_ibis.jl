@@ -18,7 +18,7 @@ include("preamble/_initialmodel.jl");
 
 ################################################################################
 # Load saved model of choice
-_subfolder ="/saved/ibis/"
+_subfolder ="/saved/real/ibis/"
 _savedtrace = "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2"
 
 f_model   =   jldopen(string(pwd(), _subfolder, _savedtrace))
@@ -194,7 +194,7 @@ include("preamble/_initialmodel.jl");
 
 ################################################################################
 # Load saved model of choice
-_subfolder ="/saved/ibis/"
+_subfolder ="/saved/real/ibis/"
 
 _savedtraces = [
     "IBIS - StochasticVolatility Errors - Copula-BB1, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
@@ -299,7 +299,7 @@ plot_clpbf(
     marginal_lik,
     dates_real[(end-length(marginal_lik[begin])+1):end],
     String.(_copulas_names),
-    2
+    6
 )
-ylabel!("CLPBF of Frank Copula", subplot=1)
+#ylabel!("CLPBF of Frank Copula", subplot=1)
 Plots.savefig( string("Chp5_SVM_SMC_ModelComparison.pdf") )
