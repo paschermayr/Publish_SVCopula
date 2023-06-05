@@ -19,7 +19,8 @@ include("preamble/_initialmodel.jl");
 ################################################################################
 # Load saved model of choice
 _subfolder ="/saved/real/mcmc/"
-_savedtrace = "MCMC - StochasticVolatility Errors - Copula-BB1, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2"
+#_savedtrace = "MCMC - StochasticVolatility Errors - Copula-BB1, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2"
+_savedtrace = "MCMC - StochasticVolatility Errors - Copula-FrankUnconstrained, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2"
 f_model   =   jldopen(string(pwd(), _subfolder, _savedtrace))
 
 trace_mcmc = read(f_model, "trace")
@@ -169,7 +170,6 @@ Plots.savefig( string("MCMC - ", _SVsetting," - Simulated data.png") )
 ################################################################################
 ################################################################################
 #Joint analysis
-
 import Pkg
 cd(@__DIR__)
 Pkg.activate(".")
@@ -188,16 +188,18 @@ include("preamble/_initialmodel.jl");
 _subfolder ="/saved/real/mcmc/"
 
 _savedtraces = [
-    "MCMC - StochasticVolatility Errors - Copula-BB1, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-BB7, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
     "MCMC - StochasticVolatility Errors - Copula-BB1, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-BB7, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Frank, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Gaussian, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-Gumbel, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-BB1, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
     "MCMC - StochasticVolatility Errors - Copula-Gumbel, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
-    "MCMC - StochasticVolatility Errors - Copula-TCop, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2"
+    "MCMC - StochasticVolatility Errors - Copula-Gumbel, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-Joe, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-Joe, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-FrankUnconstrained, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-TCop, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2",
+    "MCMC - StochasticVolatility Errors - Copula-Gaussian, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2",
 ]
 
 ################################################################################
@@ -217,6 +219,7 @@ for _modelname in _savedtraces
     push!(_copulas, copula_temp)
 end
 length(_copulas_names) == length(_copulas) == length(_savedtraces)
+_copulas_names
 
 ################################################################################
 #WAIC and DIC computations
@@ -311,7 +314,7 @@ for (_counter, savedtrace) in enumerate(_savedtraces)
     _err, _errᵤ = data_to_errors(model.arg.marginals, postmean_tup, data)
     N_errors = length(_err)
 ## Compute Copula specific statistics
-    _cop_stats = [ get_copuladiagnostics(model_copula.id, chain_posterior[iter].copula, _errorsᵤ[iter]) for iter in eachindex(chain_posterior) ]
+    _cop_stats = [ get_copuladiagnostics(model_copula.id, model.arg.reflection, chain_posterior[iter].copula, _errorsᵤ[iter]) for iter in eachindex(chain_posterior) ]
     push!(cop_statistics, _cop_stats)
 
 ## Compute WAIC relevant statistics - Incremental likelihood for data_t for t=1:T for each posterior sample
@@ -399,12 +402,27 @@ for iter in eachindex(cop_plots)
 end
 =#
 _fonttemp2 = 10
+allcopulaplots
+
+#=iter+=1
+plot(allcopulaplots[4])
+
+allcopulaplots2 = [
+    allcopulaplots[11],
+    allcopulaplots[6],
+    allcopulaplots[8],
+    allcopulaplots[12],
+    allcopulaplots[10],
+    allcopulaplots[4]
+]
+=#
+allcopulaplots2 = allcopulaplots
 plot_cop = plot(
 #    allcopulaplots[1], allcopulaplots[2], allcopulaplots[3];
-    allcopulaplots...;
+    allcopulaplots2...;
 #    allcopulaplots[1], allcopulaplots[2], allcopulaplots[3], allcopulaplots[4], allcopulaplots[5], allcopulaplots[6];
     #label = false, #_copulas_names,
-    layout=(5, 2),
+    layout=(4, 3),
     size=(1000,1000),
 #    legend=:topleft,
     xguidefontsize=_fonttemp2,
@@ -434,13 +452,13 @@ _copula_table
 round.( reduce(hcat, getfield.(_copula_table, :λₗ) )' ; digits = 2)
 
 using PrettyTables
-outputbackend = :latex
-println("## Lower Tail Dependence: ")
+outputbackend = :text
+println("## Lower-Upper Tail Dependence: ")
 PrettyTables.pretty_table(
     round.( reduce(hcat, getfield.(_copula_table, :λₗ) )'; digits = 3), backend = Val(outputbackend), row_labels = _copulas_names, header = string.(["Q2.5", "Q25.0", "Q50.0", "Q75.0", "Q97.5"])
 )
 
-println("## Upper Tail Dependence: ")
+println("## Upper-Lower Tail Dependence: ")
 PrettyTables.pretty_table(
     round.( reduce(hcat, getfield.(_copula_table, :λᵤ) )'; digits = 3), backend = Val(outputbackend), row_labels = _copulas_names, header = string.(["Q2.5", "Q25.0", "Q50.0", "Q75.0", "Q97.5"])
 )
@@ -454,6 +472,20 @@ println("## Kendall's tau: ")
 PrettyTables.pretty_table(
     round.( reduce(hcat, getfield.(_copula_table, :τ_kendall) )'; digits = 3), backend = Val(outputbackend), row_labels = _copulas_names, header = string.(["Q2.5", "Q25.0", "Q50.0", "Q75.0", "Q97.5"])
 )
+
+keys(_copula_table[begin])
+cop_names = getindex.(_copula_table, :name)
+cop_lt = getindex.( getindex.(_copula_table, :λₗ), 3)
+cop_ut = getindex.( getindex.(_copula_table, :λᵤ), 3)
+cop_kendall = getindex.( getindex.(_copula_table, :τ_kendall), 3)
+cop_spearman = getindex.( getindex.(_copula_table, :ρ_spearman), 3)
+cop_stats = reduce(hcat, [cop_lt, cop_ut, cop_kendall, cop_spearman])
+println("## Median diagnostics: ")
+
+PrettyTables.pretty_table(
+    round.( cop_stats; digits = 2), backend = Val(:latex), row_labels = _copulas_names, header = string.(["Lower Tail Q50.0", "Upper Tail Q50.0", "Spearman's rho Q50.0", "Kendall's tau Q50.0"])
+)
+
 
 ################################################################################
 #Return WAIC and DIC as table
@@ -485,17 +517,17 @@ waic_all_table = reduce(hcat, [ getindex.(waic_all, iter) for iter in eachindex(
 waic_all_ranking = sortperm(waic_all_table[:,1])
 
 ################################################################################
-_prettytableoutput = :text
+_prettytableoutput = :latex
 noranking = collect(1:length(dic_ranking))
 dic_ranking = dic_all_ranking = waic_ranking = waic_all_ranking = noranking
 
 println("## DIC - Copula and Marginal Part: ")
 PrettyTables.pretty_table(
-    round.(dic_all_table; digits=2)[dic_all_ranking,:], backend = Val(_prettytableoutput), row_labels = _copulas_names[dic_all_ranking], header = dic_all_names
+    round.(dic_all_table; digits=1)[dic_all_ranking,:], backend = Val(_prettytableoutput), row_labels = _copulas_names[dic_all_ranking], header = dic_all_names
 )
 println("## WAIC - Copula and Marginal Part: ")
 PrettyTables.pretty_table(
-    round.(waic_all_table; digits=2)[waic_all_ranking,:], backend = Val(_prettytableoutput), row_labels = _copulas_names[waic_all_ranking], header = waic_all_names
+    round.(waic_all_table; digits=1)[waic_all_ranking,:], backend = Val(_prettytableoutput), row_labels = _copulas_names[waic_all_ranking], header = waic_all_names
 )
 
 println("## DIC (alternative)- Copula and Marginal Part: ")

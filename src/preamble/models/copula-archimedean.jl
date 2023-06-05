@@ -24,12 +24,17 @@ function rand_conditional(_rng::Random.AbstractRNG, copula::C, u1::T) where {C<:
     u2 = ( ( t/u1^(-α-1) )^(-α/(1+α)) - u1^(-α) + 1 )^(-1/α)
     return u2
 end
-function get_copuladiagnostics(copula::Clayton, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
-    @argcheck size(dataᵤ, 1) < size(dataᵤ, 2) "Tail and Correlation statistics computer for bivariate data of size 2*n"
+
+function get_tails(copula::Clayton, θ::NamedTuple)
     @unpack α = θ
-    # Compute
     λₗ = 2^(-1/α)
     λᵤ = 0.0
+    return λₗ, λᵤ
+end
+function get_copuladiagnostics(copula::Clayton, reflection::ArchimedeanReflection, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
+    @argcheck size(dataᵤ, 1) < size(dataᵤ, 2) "Tail and Correlation statistics computer for bivariate data of size 2*n"
+    #Compute tails - reflection takes into account lower and upper tails
+    λₗ, λᵤ = get_tails(copula, reflection, θ)
     τ_kendall = StatsBase.corkendall(dataᵤ[1,:], dataᵤ[2,:])
     ρ_spearman = StatsBase.corspearman(dataᵤ[1,:], dataᵤ[2,:])
     # Return Output
@@ -67,11 +72,14 @@ function rand_conditional(_rng::Random.AbstractRNG, copula::C, u1::T) where {C<:
     u2 = (1/-α) * log(1 + (t*(exp(-α) - 1) ) / ( 1 + (exp(-α*u1) - 1)*(1-t) ) )
     return u2
 end
-function get_copuladiagnostics(copula::Frank, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
+
+function get_tails(copula::Frank, θ::NamedTuple)
+    return 0.0, 0.0
+end
+function get_copuladiagnostics(copula::Frank, reflection::ArchimedeanReflection, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
     @argcheck size(dataᵤ, 1) < size(dataᵤ, 2) "Tail and Correlation statistics computer for bivariate data of size 2*n"
-    # Compute
-    λₗ = 0.0
-    λᵤ = 0.0
+    # Compute tails
+    λₗ, λᵤ = get_tails(copula, reflection, θ)
     τ_kendall = StatsBase.corkendall(dataᵤ[1,:], dataᵤ[2,:])
     ρ_spearman = StatsBase.corspearman(dataᵤ[1,:], dataᵤ[2,:])
     # Return Output
@@ -103,12 +111,19 @@ function ℓlikelihood(copula::C, θ::NamedTuple, u::AbstractVector) where {C<:G
     log(     ( sum( (-log(u[iter]))^α for iter in eachindex(u) )^( 2/α - 2 ) / (prod( log(u[iter]) for iter in eachindex(u) )^(1-α)) ) ) +
     log(     ( 1 + (α - 1) * ( sum( (-log(u[iter]))^α for iter in eachindex(u) ) )^(-1/α) ) )
 end
-function get_copuladiagnostics(copula::Gumbel, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
-    @argcheck size(dataᵤ, 1) < size(dataᵤ, 2) "Tail and Correlation statistics computer for bivariate data of size 2*n"
+
+function get_tails(copula::Gumbel, θ::NamedTuple)
     @unpack α = θ
     # Compute
     λₗ = 0.0
     λᵤ = 2 - 2^(1/α)
+    return λₗ, λᵤ
+end
+function get_copuladiagnostics(copula::Gumbel, reflection::ArchimedeanReflection, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
+    @argcheck size(dataᵤ, 1) < size(dataᵤ, 2) "Tail and Correlation statistics computer for bivariate data of size 2*n"
+    # Compute tails
+    λₗ, λᵤ = get_tails(copula, reflection, θ)
+
     τ_kendall = StatsBase.corkendall(dataᵤ[1,:], dataᵤ[2,:])
     ρ_spearman = StatsBase.corspearman(dataᵤ[1,:], dataᵤ[2,:])
     # Return Output
@@ -143,12 +158,19 @@ function ℓlikelihood(copula::C, θ::NamedTuple, u::AbstractVector) where {C<:J
         log(α - 1 + sum( _joeldensity(α, u[iter]) for iter in eachindex(u) ) - prod( _joeldensity(α, u[iter]) for iter in eachindex(u) ) ) +
         sum( (α-1)*log( (1 - u[iter]) ) for iter in eachindex(u) )
 end
-function get_copuladiagnostics(copula::Joe, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
-    @argcheck size(dataᵤ, 1) < size(dataᵤ, 2) "Tail and Correlation statistics computer for bivariate data of size 2*n"
+
+function get_tails(copula::Joe, θ::NamedTuple)
     @unpack α = θ
     # Compute
     λₗ = 0.0
     λᵤ = 2 - 2^(1/α)
+    return λₗ, λᵤ
+end
+function get_copuladiagnostics(copula::Joe, reflection::ArchimedeanReflection, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
+    @argcheck size(dataᵤ, 1) < size(dataᵤ, 2) "Tail and Correlation statistics computer for bivariate data of size 2*n"
+    # Compute tails
+    λₗ, λᵤ = get_tails(copula, reflection, θ)
+
     τ_kendall = StatsBase.corkendall(dataᵤ[1,:], dataᵤ[2,:])
     ρ_spearman = StatsBase.corspearman(dataᵤ[1,:], dataᵤ[2,:])
     # Return Output
@@ -162,8 +184,8 @@ end
 
 ################################################################################
 function cumℓlikelihood(id::A, reflection::R, θ::NamedTuple, data) where {A<:Archimedean, R<:ArchimedeanReflection}
-## If required, unrotate copula to original angle
-    U_rotated = unrotatecopula(reflection, data)
+## If required, rotate data for copula
+    U_rotated = rotatecopula(reflection, data)
 ## Compute ll
     ll = 0.0
     for dat in eachcol(U_rotated)
@@ -173,8 +195,8 @@ function cumℓlikelihood(id::A, reflection::R, θ::NamedTuple, data) where {A<:
 end
 #!NOTE: not used in inference process
 function _cumℓlikelihood(id::A, reflection::R, θ::NamedTuple, data) where {A<:Archimedean, R<:ArchimedeanReflection}
-## If required, unrotate copula to original angle
-    U_rotated = unrotatecopula(reflection, data)
+## If required, rotate data for copula
+    U_rotated = rotatecopula(reflection, data)
 ## Compute ll
     ll = 0.0
     for dat in eachcol(U_rotated)
@@ -214,6 +236,13 @@ function ModelWrappers.predict(_rng::Random.AbstractRNG, objective::Objective{<:
     return U_rotated
 end
 
+#=
+model
+copula
+dat = simulate(_rng, copula, 10000)
+#scatter(dat[1,:], dat[2,:])
+p1 = plotContour(copula, dat, )
+=#
 ################################################################################
 # Get Plots for it
 function plotContour(model::ModelWrapper{<:Archimedean}, dataᵤ::D, copulaname = typeof(model.id);
@@ -255,7 +284,6 @@ function plotContour(model::ModelWrapper{<:Archimedean}, dataᵤ::D, copulaname 
     )
     # Add sample data on the real line
     obs = reduce(hcat, quantile.(marginal, [dat for dat in eachcol(dataᵤ)]))
-#    obs = reduce(hcat, quantile.(marginal, [rotatecopula(model.arg.reflection, dat) for dat in eachcol(dataᵤ)]))
     plot!(view(obs, 1, :), view(obs, 2, :),
         label = copulaname,
         seriestype=:scatter,

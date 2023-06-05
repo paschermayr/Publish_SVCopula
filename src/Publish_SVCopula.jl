@@ -1,40 +1,9 @@
-param_FrankCopula = (;
-    α = Param(truncated(Normal(0.1, 10^5), -30.0, 30.0), _alpha, )
-)
-_archimedeanreflection
-frankcopula = ModelWrapper(Frank(), param_FrankCopula, (;reflection = _archimedeanreflection))
-dat = rand(2, 10)
-ℓlikelihood(Frank(), frankcopula.val, dat[1,:])
-
-#Current workflow
-data = rand(2, 10)
-reflection = Reflection90()
-copula = frankcopula
-
-u = rand(2)
-u_unrotated = unrotatecopula(Reflection90(), u)
-u_rotated = rotatecopula(Reflection90(), u)
-
-#1 Assume rotated data as input: Unrorate data, then evaluate:
-ℓur = ℓlikelihood(Frank(), (;α = 5.), u_unrotated)
-
-# Assume unrotated data as input: Rotate data, then evaluate
-ℓr = ℓlikelihood(Frank(), (;α = 5.), u_rotated)
-
-ℓur ≈ ℓr
-
 ################################################################################
 import Pkg
 cd(@__DIR__)
 Pkg.activate(".")
 Pkg.status()
 
-Pkg.status()
-Pkg.update()
-Pkg.gc()
-Pkg.update()
-Pkg.resolve()
-Pkg.status()
 #If environment activated for first time, uncomment next line to install all libraries used in project
 #Pkg.instantiate()
 include("preamble/_packages.jl");
@@ -113,9 +82,17 @@ transform_mcmc = Baytes.TraceTransform(trace_mcmc, model, tagged,
 summary(trace_mcmc, algorithm_mcmc, transform_mcmc, PrintDefault())
 savechainsummary(trace_mcmc, transform_mcmc, PrintDefault(;Ndigits=2), string("output/MCMC - ", _SVsetting," - Chaindiagnostics"))
 
+#Make summary
+printchainsummary(
+    trace_mcmc,
+    transform_mcmc,
+    Val(:latex), #or Val(:latex)
+    PrintDefault(;Ndigits=2);
+)
+
+
 BaytesInference.plotChains(trace_mcmc, transform_mcmc)
 Plots.savefig( string("output/MCMC - ", _SVsetting," - Chains.png") )
-
 
 postmean_vec, postmean_tup = trace_to_posteriormean(trace_mcmc, transform_mcmc)
 model_new = deepcopy(model)

@@ -89,8 +89,8 @@ elseif _modelname isa BB1
     subcopulas = BB1()
     # Parameter
     _copula = (;
-        theta = Param(truncated(Normal(2.0, 10^5), 0.0001, 25.0), bb_theta₀, ),
-        delta = Param(truncated(Normal(2.0, 10^5), 1.0, 25.0), bb_delta₀, )
+        theta = Param(truncated(Normal(1.0, 1.0), 0.01, 25.0), bb_theta₀, ),
+        delta = Param(truncated(Normal(3.0, 10.0), 1.0, 25.0), bb_delta₀, )
     )
     # Model
     copula = ModelWrapper(
@@ -102,8 +102,20 @@ elseif _modelname isa BB7
     subcopulas = BB7()
     # Parameter
     _copula = (;
-        theta = Param(truncated(Normal(2.0, 10^5), 1.0, 10.0), bb_theta₀, ),
-        delta = Param(truncated(Normal(2.0, 10^5), 0.0001, 10.0), bb_delta₀, )
+        theta = Param(truncated(Normal(3.0, 10.0), 1.0, 10.0), bb_theta₀, ),
+        delta = Param(truncated(Normal(1.0, 10.0), 0.01, 10.0), bb_delta₀, )
+    )
+    # Model
+    copula = ModelWrapper(
+        copulanames, deepcopy(_copula), (; reflection = _archimedeanreflection)
+    )
+elseif _modelname isa FrankUnconstrained
+    #Joe Copula Names
+    copulanames = FrankUnconstrained()
+    subcopulas = FrankUnconstrained()
+    # Parameter
+    _copula = (;
+        α = Param(truncated(Normal(-5.0, 10^5), -20.0, 20.0), -_alpha₀, )
     )
     # Model
     copula = ModelWrapper(

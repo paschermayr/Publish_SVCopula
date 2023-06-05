@@ -32,7 +32,7 @@ function rand_conditional(_rng::Random.AbstractRNG, copula::C, u1::T) where {C<:
     u2 = cdf(Normal(), (quantile(Normal(), t) * sqrt(1-ρ^2) + ρ*quantile(Normal(), u1)) )
     return u2
 end
-function get_copuladiagnostics(copula::Gaussian, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
+function get_copuladiagnostics(copula::Gaussian, reflection, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
     @argcheck size(dataᵤ, 1) < size(dataᵤ, 2) "Tail and Correlation statistics computer for bivariate data of size 2*n"
     # Compute
     λₗ = 0.0
@@ -104,12 +104,15 @@ function ℓlikelihood(copula::C, θ::NamedTuple, u::AbstractVector) where {C<:T
     return -log(2) + (df+1)/2 * log(1 - ρ^2) - 2*log( SpecialFunctions.gamma((df+1)/2) ) + 2*log( SpecialFunctions.gamma((df)/2) ) -
      (df-2)/2*log(df) + (df+1)/2 * sum(log(df + x[iter]^2) for iter in eachindex(x)) - (df+2)/2 * log( _Tdensity(ρ, df, x) )
 end
-function get_copuladiagnostics(copula::TCop, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
+
+function get_copuladiagnostics(copula::TCop, reflection, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
     @argcheck size(dataᵤ, 1) < size(dataᵤ, 2) "Tail and Correlation statistics computer for bivariate data of size 2*n"
     @unpack df, ρ = θ
     # Compute
-    λₗ = 2 * pdf(TDist(df+1), (-sqrt(df+1) * sqrt( (1-ρ)/(1+ρ) ) ) )
-    λᵤ = 2 * pdf(TDist(df+1), (-sqrt(df+1) * sqrt( (1-ρ)/(1+ρ) ) ) )
+#    λₗ = 2 * pdf(TDist(df+1), (-sqrt(df+1) * sqrt( (1-ρ)/(1+ρ) ) ) )
+    #Note: Version for tail formula as discussed
+    λₗ = 2 * pdf(TDist(df+1), (-sqrt(df+1) * sqrt( (1+ρ)/(1-ρ) ) ) )
+    λᵤ = λₗ
     τ_kendall = StatsBase.corkendall(dataᵤ[1,:], dataᵤ[2,:])
     ρ_spearman = StatsBase.corspearman(dataᵤ[1,:], dataᵤ[2,:])
     # Return Output

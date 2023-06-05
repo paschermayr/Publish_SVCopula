@@ -58,12 +58,18 @@ function cdf(copula::BB1Copula, u::AbstractVector)
     return val
 end
 
-function get_copuladiagnostics(copula::BB1, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
-    @argcheck size(dataᵤ, 1) < size(dataᵤ, 2) "Tail and Correlation statistics computer for bivariate data of size 2*n"
+function get_tails(copula::BB1, θ::NamedTuple)
     @unpack theta, delta = θ
     # Compute
     λₗ = 2^(-1/(theta*delta))
     λᵤ = 2 - 2^(1/delta)
+    return λₗ, λᵤ
+end
+function get_copuladiagnostics(copula::BB1, reflection::ArchimedeanReflection, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
+    @argcheck size(dataᵤ, 1) < size(dataᵤ, 2) "Tail and Correlation statistics computer for bivariate data of size 2*n"
+    # Compute Tails
+    λₗ, λᵤ = get_tails(copula, reflection, θ)
+
     τ_kendall = StatsBase.corkendall(dataᵤ[1,:], dataᵤ[2,:])
     ρ_spearman = StatsBase.corspearman(dataᵤ[1,:], dataᵤ[2,:])
     # Return Output
@@ -153,12 +159,17 @@ function cdf(copula::BB7Copula, u::AbstractVector)
     return val
 end
 
-function get_copuladiagnostics(copula::BB7, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
-    @argcheck size(dataᵤ, 1) < size(dataᵤ, 2) "Tail and Correlation statistics computer for bivariate data of size 2*n"
+function get_tails(copula::BB7, θ::NamedTuple)
     @unpack theta, delta = θ
     # Compute
     λₗ = 2^(-1/delta)
     λᵤ = 2 - 2^(1/theta)
+    return λₗ, λᵤ
+end
+function get_copuladiagnostics(copula::BB7, reflection::ArchimedeanReflection, θ::NamedTuple, dataᵤ::Matrix{F}) where {F<:Real}
+    @argcheck size(dataᵤ, 1) < size(dataᵤ, 2) "Tail and Correlation statistics computer for bivariate data of size 2*n"
+    # Compute Tails
+    λₗ, λᵤ = get_tails(copula, reflection, θ)
     τ_kendall = StatsBase.corkendall(dataᵤ[1,:], dataᵤ[2,:])
     ρ_spearman = StatsBase.corspearman(dataᵤ[1,:], dataᵤ[2,:])
     # Return Output

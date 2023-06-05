@@ -19,7 +19,7 @@ include("preamble/_initialmodel.jl");
 ################################################################################
 # Load saved model of choice
 _subfolder ="/saved/real/ibis/"
-_savedtrace = "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2"
+_savedtrace = "IBIS - StochasticVolatility Errors - Copula-FrankUnconstrained, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2"
 
 f_model   =   jldopen(string(pwd(), _subfolder, _savedtrace))
 trace_smcIBIS = read(f_model, "trace")
@@ -197,16 +197,18 @@ include("preamble/_initialmodel.jl");
 _subfolder ="/saved/real/ibis/"
 
 _savedtraces = [
-    "IBIS - StochasticVolatility Errors - Copula-BB1, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-BB7, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
     "IBIS - StochasticVolatility Errors - Copula-BB1, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-BB7, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Frank, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Gaussian, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-Gumbel, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-BB1, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
     "IBIS - StochasticVolatility Errors - Copula-Gumbel, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
-    "IBIS - StochasticVolatility Errors - Copula-TCop, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2"
+    "IBIS - StochasticVolatility Errors - Copula-Gumbel, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-Clayton, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-Joe, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection270() - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-Joe, Marginals-Tuple{Normal{Float64}, Normal{Float64}}, Reflection-Reflection90() - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-FrankUnconstrained, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-TCop, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2",
+    "IBIS - StochasticVolatility Errors - Copula-Gaussian, Marginals-Tuple{Normal{Float64}, Normal{Float64}} - Trace.jld2"
 ]
 
 ################################################################################
@@ -243,14 +245,16 @@ for (_counter, savedtrace) in enumerate(_savedtraces)
     push!(marginal_lik, cumsum([trace_smcIBIS.diagnostics[chain].ℓincrement for chain in eachindex(trace_smcIBIS.diagnostics)]))
 end
 
+bmcopulaindex = 10
 plot_cumℓincrement(
     marginal_lik,
     dates_real[(end-length(marginal_lik[begin])+1):end],
     String.(_copulas_names),
-    6
+    bmcopulaindex
 )
 ylabel!("Cumulative Log Predictive Likelihood", subplot=1)
-ylabel!(string("CLPBF of ", _copulas_names[6]), subplot=2)
+ylabel!(string("CLPBF of ", _copulas_names[bmcopulaindex]), subplot=2)
+ylabel!(string("CLPBF of Frank"), subplot=2)
 Plots.savefig( string("Chp5_SMC_ModelComparison.pdf") )
 
 
